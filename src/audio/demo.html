@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ut-tiny audio demo</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #101418;
+        color: #dde;
+        font:
+          13px/1.4 system-ui,
+          sans-serif;
+      }
+      h2 {
+        font-size: 14px;
+        margin: 16px 0 6px;
+      }
+      #sounds {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      button {
+        background: #223;
+        color: #dde;
+        border: 1px solid #446;
+        padding: 4px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      label {
+        display: inline-block;
+        margin-right: 12px;
+      }
+      #status {
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">Click anywhere to start audio.</div>
+    <h2>Where</h2>
+    <label><input type="radio" name="where" value="local" checked /> local (non-positional)</label>
+    <label><input type="radio" name="where" value="world" /> world at distance</label>
+    <label>distance <input id="distance" type="range" min="1" max="120" value="20" /></label>
+    <label>angle <input id="angle" type="range" min="-180" max="180" value="45" /></label>
+    <h2>Volume</h2>
+    <div id="volume"></div>
+    <h2>Scenarios</h2>
+    <button id="firefight">Simulated firefight (event stream)</button>
+    <button id="announcer">Announcer lines</button>
+    <h2>Sounds</h2>
+    <div id="sounds"></div>
+    <script type="module" src="./demo.ts"></script>
+  </body>
+</html>
