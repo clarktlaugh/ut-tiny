@@ -10,6 +10,7 @@ Always current. Every PR updates its own line. Last updated by P2.
 ## In flight
 
 - P2: Contracts v1 (branch `packet/2-contracts`, issue #3): `src/sim/types.ts`, `src/sim/rng.ts`, `src/net/transport.ts`, `src/render/viewTarget.ts`, contract tests under `tests/contracts/`.
+- P8: Player controller (branch `packet/8-player-controller`, issue #9): `src/controllers/player/` — `PlayerController` (keyboard/mouse → `InputCommand`, mouse look with sensitivity/invert, respawn view sync, weapon slots/wheel/last weapon), `InputState` (sub-tick press latching), `DodgeDetector` (double-tap within 250 ms emits the dodge bit for one tick), rebindable `Bindings`, pointer-lock DOM wiring; `src/app/settings.ts` — sanitised `Settings` + `SettingsStore` persisted to localStorage.
 
 ## Known issues
 
