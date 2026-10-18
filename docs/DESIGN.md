@@ -644,3 +644,131 @@ Netlify is already linked to this repository and is the sole hosting target.
 8. **Hosting**: decided, Netlify (already linked to the repo). See §14.
 9. **"Basement" vs "Basement Game Room"**: I read these as two distinct maps, a finished game room and an unfinished utility basement. Default: both, unfinished basement built last.
 10. **Map build order**: Laundry → Kid's Bedroom → Kitchen → Home Theater → Bathroom → Master Bedroom → Game Room → Unfinished Basement, chosen to establish the material library early. Reorder freely.
+
+---
+
+## 17. Who does the work: model routing
+
+Development is done by Claude Code sessions, not by hand. Each unit of work (a
+"packet", §18) is tagged with the model tier that runs it. The rule: **Fable 5.1
+for art generation and the hard, taste-driven problems; Opus 5.5 for implementing
+well-specified systems and reviewing; Sonnet 5.5 for everything mechanical.**
+
+A note on what "art generation" means here. No Claude model emits image or mesh
+files directly. Art is *generated through code*: Blender Python scripts that model
+props at real dimensions and UV/bake them, procedural texture generators (noise,
+patterns, wear masks, decal SVGs), shader and material code, lighting setups, and
+the scene-assembly scripts that place everything. Photoreal base textures come from
+CC0 photoscans (Poly Haven, ambientCG) that scripts download and pack. Fable is the
+model that writes and iterates on that code against rendered screenshots.
+
+| Tier | Model ID | Owns |
+|---|---|---|
+| **Fable** | `claude-fable-5-1` | Map layout and blockout design; Blender modeling scripts for props; procedural texture and detail-map generators; material/shader extensions (macro+detail layering, cloth, water, glass); lighting and lightmap bake setup; FX design (particles, beams, explosions, cam overlays); movement-feel tuning; bot AI design and tuning; sim/net architecture and contract definitions; any bug that two Opus attempts failed to fix. |
+| **Opus** | `claude-opus-5-5` | Implementing systems against a written spec: weapon behaviors from §5, pickups and rules, HUD, snapshot codec, navmesh integration, Playroom transport, view-target system; code review of every PR; CI-failure fixing on open PRs; replicating a Fable-authored pattern across the remaining maps or weapons. |
+| **Sonnet** | `claude-sonnet-5-5` | Boilerplate and scaffolding, tests from specs, data tables, docs, asset packing and conversion scripts, CI and Netlify config, lint/format fixes, dependency updates, screenshot-capture scripts, backlog grooming, status digests. |
+| **Haiku** | `claude-haiku-5-5` | The dispatcher and digest jobs (§18.4), which only read labels and post summaries. |
+
+Routing rules:
+
+1. Fable packets are few and high-leverage. Fable produces the *first* instance of
+   a thing (the laundry room, the first PBR material set, the washing machine
+   model script, the rocket launcher FX) plus a written pattern; Opus/Sonnet
+   replicate the pattern for the other seven maps and seven weapons.
+2. Any packet may escalate one tier by relabeling the issue and commenting why.
+   Two failed attempts at a tier escalate automatically.
+3. Review tier is always at least the implementation tier: Fable work is reviewed
+   by Fable (a second session, not the author).
+4. Gameplay feel (movement, weapon tuning) and all art packets end with a human
+   sign-off on the Netlify deploy preview; everything else can auto-merge when
+   green and reviewed.
+
+---
+
+## 18. Work breakdown for unattended execution
+
+The goal is a backlog that cloud sessions can pull from and finish without anyone
+watching, with humans only reviewing deploy previews and the occasional escalation.
+
+### 18.1 Packets
+
+A packet is one GitHub issue that one session can finish in one sitting (target:
+under half a day of agent time, under ~800 lines of diff). Every packet has:
+
+- **Scope**: what to build, referencing this document by section number.
+- **Owned paths**: the directories/files the packet may change. CI fails a PR that
+  touches files outside its packet's owned paths (plus `docs/STATUS.md`).
+- **Depends on**: packet numbers that must be merged first.
+- **Acceptance**: commands that must pass (`npm run check` = typecheck + lint +
+  vitest + build; plus packet-specific tests the packet must add) and, for visual
+  work, the screenshot set it must produce.
+- **Tier**: `tier:fable` / `tier:opus` / `tier:sonnet`.
+- **Sign-off**: `auto` or `human` (art and feel packets).
+
+The issue template lives at `.github/ISSUE_TEMPLATE/work-packet.md`; the initial
+backlog for M0–M3 is in `docs/BACKLOG.md`.
+
+### 18.2 Contracts first, then fan out
+
+Parallel unattended work only works when sessions code against stable interfaces.
+So each milestone begins with a single Fable "contracts" packet that lands the
+types and stubs everyone else depends on (`InputCommand`, `WeaponDef`, `MapDef`,
+`SimEvent`, `Transport`, the `World.step` signature, the `ViewTarget` interface),
+with doc comments and failing tests that describe intended behavior. After that
+merges, the milestone's remaining packets run in parallel, each on its own branch
+and PR, because they own disjoint paths. Contract changes after the freeze are a
+separate Fable packet, never a side effect of an implementation PR.
+
+### 18.3 Repo scaffolding that makes sessions self-sufficient
+
+- `CLAUDE.md`: how to run, test, build, where the plan is, the owned-paths rule,
+  commit and PR conventions, and "read `docs/STATUS.md` first".
+- `docs/STATUS.md`: a short, always-current list of what is merged, what is in
+  flight, known issues, and the next three packets. Every PR updates its line.
+- SessionStart hook (`.claude/settings.json`): installs dependencies, verifies
+  Blender and the texture tools are present for art packets, warms the Rapier and
+  Recast WASM downloads so the first `npm run check` is fast.
+- `scripts/screenshot.ts`: Playwright + headless Chromium loads a map, runs 300 sim
+  ticks with scripted inputs, and writes screenshots from fixed camera positions
+  named in the map file. Art and FX packets attach these to their PR; reviewers
+  and the user compare before/after.
+- `scripts/smoke.ts`: headless run of a 1v3 bot match for 60 s of sim time; fails
+  on exceptions, NaNs, or a bot that never moves. Runs in CI.
+- Netlify deploy previews on every PR give the human sign-off a URL.
+
+### 18.4 Dispatcher and feedback loop
+
+Scheduled tasks in Claude Code (cloud) drive the loop. No custom infrastructure.
+
+1. **Dispatcher** (Haiku or Sonnet, every hour, fresh session): lists issues
+   labeled `ready` whose dependencies are closed, caps concurrency (default 3
+   packets in flight, 1 of them Fable), and for each creates a cloud session on
+   the repo with the issue's model tier and a standard prompt: read `CLAUDE.md`,
+   `docs/STATUS.md`, the design sections the issue cites, implement the packet on
+   branch `packet/<n>-<slug>`, run `npm run check`, open a PR that references the
+   issue, subscribe to the PR, and drive it to green. It moves the label to
+   `in-progress` and records the session ID on the issue.
+2. **Worker session** (the packet's tier) does the work and owns its PR: fixes CI,
+   answers review comments, merges the base on conflicts, and stops when merged
+   or when it has escalated.
+3. **Reviewer** (Opus, or Fable for Fable packets; triggered per PR): reviews
+   against the packet's acceptance criteria and the design doc, requests changes
+   or approves. Auto-merge is enabled for `signoff:auto` packets, so a green,
+   approved PR merges itself; `signoff:human` PRs wait for the user with the deploy
+   preview link in the PR description.
+4. **Digest** (Haiku, daily): posts one summary to the user (what merged, what's
+   waiting for sign-off with preview links, what escalated and why, what the
+   dispatcher will start next) and refreshes `docs/STATUS.md` if a PR forgot.
+
+Guardrails: a packet that fails CI three times in a row, or whose session errors
+twice, is relabeled `blocked` with the logs attached and left for the digest;
+worker sessions never force-push, never touch files outside owned paths, never
+change the contracts, and never merge their own PR. The dispatcher starts nothing
+when `main` is red; the first `ready` packet it then creates is "fix main".
+
+### 18.5 What the user does
+
+- Review `signoff:human` PRs on their deploy previews (movement feel, each map's
+  art, each weapon's FX) and merge or comment.
+- Read the daily digest; answer escalations by commenting on the issue.
+- Add or reprioritize packets by editing issues and labels. Everything else runs.
