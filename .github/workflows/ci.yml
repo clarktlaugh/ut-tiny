@@ -17,6 +17,32 @@ jobs:
       - run: npm ci
       - run: npm run check
 
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            scripts/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix scripts
+      - run: npx --prefix scripts playwright-core install --with-deps chromium
+      - name: Smoke (60 s sim)
+        run: node scripts/smoke.ts --seconds 60
+      - name: Screenshots
+        run: node scripts/screenshot.ts --out screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: screenshots
+          if-no-files-found: ignore
+
   owned-paths:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
