@@ -17,6 +17,7 @@ Always current. Every PR updates its own line. Last updated by P4.
 - P8: Player controller (branch `packet/8-player-controller`, issue #9): `src/controllers/player/` — `PlayerController` (keyboard/mouse → `InputCommand`, mouse look with sensitivity/invert, respawn view sync, weapon slots/wheel/last weapon), `InputState` (sub-tick press latching), `DodgeDetector` (double-tap within 250 ms emits the dodge bit for one tick), rebindable `Bindings`, pointer-lock DOM wiring; `src/app/settings.ts` — sanitised `Settings` + `SettingsStore` persisted to localStorage.
 
 - P7: Kinematic character controller (branch `packet/7-character-controller`, issue #8): `src/sim/movement/` — `CharacterMover` (per-pawn `MoverState`, capsule sweeps against `PhysicsWorld`: slide, step-up ≤ 0.45 m, ground snap, walls, ramps), full UT set from §4 (run 8.8 m/s, 19 m/s² gravity, jump, near-apex double jump, dodge with 0.5 s cooldown, wall dodge off a wall behind the dodge, 35 % air control, crouch, fall damage, `launch()` for jump pads), `jump`/`dodge`/`land`/`footstep` events, pure kinematics helpers; `src/app/devTuning.ts` — live slider panel over `MovementConfig` behind `?tuning=1` / Vite dev, persisted to localStorage (not yet mounted by `main.ts`).
+- Fix main (issue #36): `.github/workflows/claude-review.yml` was invalid YAML (unquoted `stub: PR` in `run:`), so every run failed with zero jobs; `run` is now a block scalar.
 
 ## Known issues
 
