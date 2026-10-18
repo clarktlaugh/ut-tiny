@@ -1,6 +1,6 @@
 # Status
 
-Always current. Every PR updates its own line. Last updated by P4.
+Always current. Every PR updates its own line. Last updated by P9.
 
 ## Merged
 
@@ -20,6 +20,7 @@ Always current. Every PR updates its own line. Last updated by P4.
 - P11: Jump pads, volumes, respawn and spawn scoring (branch `packet/11-jump-pads`, issue #12): `src/sim/volumes.ts` — `VolumeSystem` turns physics sensor events into pad launches (`jumpPad` event, velocity for `CharacterMover.launch`), kill-volume deaths (`death` event, `killVolume`, map death message), `damageVolume` damage in whole points per second, and water occupancy; `launchVelocityTo` helper for placing pads. `src/sim/spawn.ts` — `SpawnSelector` (score = distance to nearest enemy − recency − enemy line of sight + seeded noise, blocked points skipped), `planRespawn` (chosen pose for P12's `respawnPawn`, capsule center for `mover.teleport`); respawn timing and protection stay in P12's `pawn.ts`. Tests in `src/sim/volumes.test.ts`, `src/sim/spawn.test.ts`. The world (later packet) wires them into `World.step`.
 - P12: Damage pipeline, health/shield, death and respawn flow, inventory (branch `packet/12-damage-pipeline`, issue #13): `src/sim/damage.ts` (`applyDamage`: spawn protection → UDamage ×2 → own splash ×0.5 → shield absorbs first → health; `damage` then `death` events with killer/weapon/message; momentum → velocity change for knockback; telefrag/kill volume/suicide are lethal through shield and protection), `src/sim/inventory.ts` (owned weapons and ammo capped at `AmmoDef.max`, 0.3 s switch via `pendingWeapon` → `weaponSwitched`, slot/next/prev requests, no switching while guiding, auto-switch on stronger pickup, switch to best when empty), `src/sim/pawn.ts` (`PawnRecord`, respawn after `respawnDelay` + Fire press or 2 s, spawn loadout translocator + assault rifle, spawn protection ended by firing, overheal decay 1/s, `syncFromMover`); tests in `src/sim/pawn.test.ts`.
 - Fix main (issue #36): `.github/workflows/claude-review.yml` was invalid YAML (unquoted `stub: PR` in `run:`), so every run failed with zero jobs; `run` is now a block scalar.
+- P9: Laundry room grey-box `MapDef` (branch `packet/9-laundry-room`, issue #10): `src/maps/laundry-room.ts` — `LAUNDRY_ROOM` at §7.1 dimensions (washer with open-lid water trap, dryer with drum room and door ramp, 72 m shelf with the Redeemer, hose tunnel behind the machines up to a 40 m vent landing, folding table with basket cage and 35° ironing-board ramp plus iron damage volume, utility sink with basin, sump kill volume and vials, clothesline walkway with hanging laundry, floor drain, clothes-pile steps), 8 spawns, every weapon placed, 5 jump pads with launches computed from §4 gravity, nav links, 6 named cameras, `LAUNDRY_LANDMARKS`. Routes verified by simulation with `CharacterMover`; fall damage over ~32 m drops is lethal with current §4 tuning (see the PR).
 
 ## Known issues
 
