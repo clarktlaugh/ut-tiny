@@ -1,0 +1,4 @@
+.github/workflows/ci.yml
+src/sim/types.ts
+docs/STATUS.md
+package.json
