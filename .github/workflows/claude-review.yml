@@ -1,0 +1,22 @@
+# Stub for the per-PR Claude reviewer (docs/DESIGN.md §18.4, step 3).
+# Reviews against the packet's acceptance criteria and the design doc: Opus for
+# most packets, Fable for Fable packets. Replace the no-op step with the review
+# action once the reviewer credentials exist; until then this only records that
+# the hook point is wired.
+name: Claude review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    if: startsWith(github.event.pull_request.head.ref, 'packet/') && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    steps:
+      - name: Review placeholder
+        run: echo "Claude review stub: PR #${{ github.event.pull_request.number }} (no reviewer configured yet)."

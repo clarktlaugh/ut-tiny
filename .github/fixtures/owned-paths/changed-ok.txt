@@ -1,0 +1,3 @@
+.github/workflows/ci.yml
+scripts/check-owned-paths.ts
+docs/STATUS.md
