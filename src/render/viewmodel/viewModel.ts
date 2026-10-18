@@ -78,6 +78,22 @@ export const WEAPON_REST = Object.freeze({ x: 0.16, y: -0.15, z: -0.36 });
 export const VIEWMODEL_NEAR = 0.01;
 export const VIEWMODEL_FAR = 10;
 
+/** Aspect ratio below which the view widens vertically to keep its horizontal field of view. */
+export const MIN_FOV_ASPECT = 4 / 3;
+
+/**
+ * Vertical FOV (degrees) for `aspect` that keeps at least the horizontal view
+ * `baseFov` has at `minAspect`. On wide screens it returns `baseFov`; on a
+ * narrow or portrait screen (a phone held upright) it grows so the weapon and
+ * the world are not cropped to a sliver.
+ */
+export function fovForAspect(baseFov: number, aspect: number, minAspect = MIN_FOV_ASPECT): number {
+  if (!(aspect > 0) || aspect >= minAspect) return baseFov;
+  const rad = Math.PI / 180;
+  const halfH = Math.atan(Math.tan((baseFov * rad) / 2) * minAspect);
+  return (2 * Math.atan(Math.tan(halfH) / aspect)) / rad;
+}
+
 /** Recoil per weapon and fire mode (§5). Unlisted modes do not kick. */
 export const RECOIL: Readonly<
   Partial<Record<WeaponId, Partial<Record<'primary' | 'alt', RecoilImpulse>>>>
@@ -119,6 +135,7 @@ export class ViewModel {
   private readonly rig = new Group();
   private readonly library = new WeaponModelLibrary();
   private current: WeaponModel | null = null;
+  private readonly baseFov: number;
   private shown = false;
   private disposed = false;
   private readonly motionInput: MotionInput = {
@@ -130,8 +147,9 @@ export class ViewModel {
   };
 
   constructor(options: ViewModelOptions = {}) {
+    this.baseFov = options.fov ?? 58;
     this.camera = new PerspectiveCamera(
-      options.fov ?? 58,
+      this.baseFov,
       options.aspect ?? 16 / 9,
       VIEWMODEL_NEAR,
       VIEWMODEL_FAR,
@@ -173,6 +191,7 @@ export class ViewModel {
   resize(width: number, height: number): void {
     if (width <= 0 || height <= 0) return;
     this.camera.aspect = width / height;
+    this.camera.fov = fovForAspect(this.baseFov, this.camera.aspect);
     this.camera.updateProjectionMatrix();
   }
 

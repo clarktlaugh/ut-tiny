@@ -27,7 +27,8 @@ import {
   testEyeHeight,
   type ViewModelTestPosition,
 } from './testPositions';
-import { ViewModel, type ViewModelPawn } from './viewModel';
+import { DemoControls } from './demoControls';
+import { ViewModel, fovForAspect, type ViewModelPawn } from './viewModel';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 const hud = document.querySelector<HTMLDivElement>('#hud');
@@ -43,7 +44,8 @@ let hidden = false;
 const renderer = new WebGLRenderer({ canvas, antialias: true });
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = PCFShadowMap;
-const world = new SceneView(LAUNDRY_ROOM, { showMarkers: false, fov: 75 });
+const WORLD_FOV = 75;
+const world = new SceneView(LAUNDRY_ROOM, { showMarkers: false, fov: WORLD_FOV });
 const viewModel = new ViewModel();
 const LOCAL = 1;
 
@@ -139,14 +141,43 @@ function cycleWeapon(dir: 1 | -1): void {
 const keys = new Set<string>();
 let lookDX = 0;
 let lookDY = 0;
+let controls: DemoControls | null = null;
+
+function jump(): void {
+  if (!pawn.grounded) return;
+  pawn.velocity.y = JUMP;
+  pawn.grounded = false;
+}
+
+function selectPosition(index: number): void {
+  const p = VIEWMODEL_TEST_POSITIONS[index];
+  if (!p) return;
+  positionIndex = index;
+  placeAt(p);
+}
 
 if (!frozenName) {
+  controls = new DemoControls({
+    root: document.body,
+    positions: VIEWMODEL_TEST_POSITIONS.map((p) => p.name),
+    weapons: WeaponIds,
+    onPosition: selectPosition,
+    onWeapon: requestWeapon,
+    onFire: (mode, down) => {
+      if (mode === 'alt') {
+        if (down) fire('alt');
+        return;
+      }
+      holdingFire = down;
+      if (down && fireCooldown <= 0) fire('primary');
+    },
+    onJump: jump,
+    onToggleNaive: () => (naive = !naive),
+    onToggleHidden: () => (hidden = !hidden),
+  });
   window.addEventListener('keydown', (e) => {
     keys.add(e.code);
-    if (e.code === 'Space' && pawn.grounded) {
-      pawn.velocity.y = JUMP;
-      pawn.grounded = false;
-    }
+    if (e.code === 'Space') jump();
     const digit = /^Digit([1-8])$/.exec(e.code);
     if (digit) {
       const id = WeaponIds[Number(digit[1]) - 1];
@@ -154,9 +185,7 @@ if (!frozenName) {
     }
     if (e.code === 'BracketRight' || e.code === 'BracketLeft') {
       const n = VIEWMODEL_TEST_POSITIONS.length;
-      positionIndex = (positionIndex + (e.code === 'BracketRight' ? 1 : n - 1)) % n;
-      const p = VIEWMODEL_TEST_POSITIONS[positionIndex];
-      if (p) placeAt(p);
+      selectPosition((positionIndex + (e.code === 'BracketRight' ? 1 : n - 1)) % n);
     }
     if (e.code === 'KeyN') naive = !naive;
     if (e.code === 'KeyH') hidden = !hidden;
@@ -164,7 +193,9 @@ if (!frozenName) {
   window.addEventListener('keyup', (e) => keys.delete(e.code));
   window.addEventListener('blur', () => keys.clear());
   canvas.addEventListener('click', () => {
-    if (document.pointerLockElement !== canvas) void canvas.requestPointerLock();
+    if (controls?.touch || document.pointerLockElement === canvas) return;
+    // Pointer lock is optional (unavailable in some embeds); ignore refusals.
+    Promise.resolve(canvas.requestPointerLock()).catch(() => undefined);
   });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   window.addEventListener('mouseup', (e) => {
@@ -200,15 +231,22 @@ const ROOM_HZ = 50 - 0.4;
 
 function stepPawn(dt: number): void {
   const sens = 0.0025;
+  const touchLook = controls?.takeLook();
+  if (touchLook) {
+    lookDX += touchLook.dx;
+    lookDY += touchLook.dy;
+  }
   pawn.yaw -= lookDX * sens;
   pawn.pitch = Math.max(-1.55, Math.min(1.55, pawn.pitch - lookDY * sens));
   lookDX = 0;
   lookDY = 0;
-  pawn.crouching = keys.has('ControlLeft') || keys.has('KeyC');
+  pawn.crouching = keys.has('ControlLeft') || keys.has('KeyC') || (controls?.crouching ?? false);
 
-  const fwd = (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0);
-  const right = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0);
-  const len = Math.hypot(fwd, right) || 1;
+  const stick = controls?.stick ?? { x: 0, y: 0 };
+  const fwd = (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0) + stick.y;
+  const right = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x;
+  // Keys give full speed; the stick gives proportional speed up to full.
+  const len = Math.max(1, Math.hypot(fwd, right));
   const speed = RUN * (pawn.crouching ? 0.5 : 1);
   const s = Math.sin(pawn.yaw);
   const c = Math.cos(pawn.yaw);
@@ -253,6 +291,9 @@ function resize(): void {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(w, h, false);
   world.resize(w, h);
+  // Keep the world's horizontal view on a phone held upright, like the view model does.
+  world.camera.fov = fovForAspect(WORLD_FOV, w / h);
+  world.camera.updateProjectionMatrix();
   viewModel.resize(w, h);
 }
 window.addEventListener('resize', resize);
@@ -321,7 +362,9 @@ function status(fps: number): string {
     `speed ${Math.hypot(pawn.velocity.x, pawn.velocity.z).toFixed(1)} m/s` +
     (frozenName
       ? `\n${p?.note ?? ''}`
-      : '\nclick: lock mouse  WASD/Space/Ctrl  LMB/RMB fire  1-8/wheel weapons  [ ] test positions  N naive  H hide')
+      : controls?.touch
+        ? '\nleft side: move  right side: look'
+        : '\nclick: lock mouse  WASD/Space/Ctrl  LMB/RMB fire  1-8/wheel weapons  [ ] test positions  N naive  H hide')
   );
 }
 
@@ -354,6 +397,7 @@ if (frozenName) {
     viewModel.update(pawn, dt, !hidden);
     draw();
     hud.textContent = status(fps);
+    controls?.sync(positionIndex, pawn.pendingWeapon ?? pawn.weapon);
     document.body.dataset.ready = '1';
     requestAnimationFrame(frame);
   };

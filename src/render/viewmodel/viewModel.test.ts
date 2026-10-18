@@ -20,6 +20,8 @@ import { FLASH_STYLES, MuzzleFlash, flashStyleFor } from './muzzleFlash';
 import { VIEWMODEL_TEST_POSITIONS, testEyeHeight } from './testPositions';
 import {
   RECOIL,
+  MIN_FOV_ASPECT,
+  fovForAspect,
   VIEWMODEL_NEAR,
   ViewModel,
   WEAPON_REST,
@@ -517,6 +519,23 @@ describe('ViewModel', () => {
     expect(vm.camera.fov).toBe(50);
     vm.resize(0, 10);
     expect(vm.camera.aspect).toBe(2);
+    vm.dispose();
+  });
+
+  it('widens its vertical FOV on portrait screens to keep the horizontal view', () => {
+    const vm = new ViewModel({ fov: 58 });
+    vm.resize(390, 844);
+    const portrait = vm.camera.fov;
+    expect(portrait).toBeGreaterThan(58);
+    expect(portrait).toBeLessThan(150);
+    // Horizontal FOV matches the 4:3 horizontal FOV of the base.
+    const hfov = (fov: number, aspect: number) =>
+      2 * Math.atan(Math.tan((fov * Math.PI) / 360) * aspect);
+    expect(hfov(portrait, 390 / 844)).toBeCloseTo(hfov(58, MIN_FOV_ASPECT), 6);
+    vm.resize(1600, 900);
+    expect(vm.camera.fov).toBe(58);
+    expect(fovForAspect(58, 4 / 3)).toBe(58);
+    expect(fovForAspect(58, 0)).toBe(58);
     vm.dispose();
   });
 

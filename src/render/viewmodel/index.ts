@@ -2,6 +2,8 @@
 export {
   ViewModel,
   viewModelVisible,
+  fovForAspect,
+  MIN_FOV_ASPECT,
   RECOIL,
   WEAPON_REST,
   VIEWMODEL_NEAR,
