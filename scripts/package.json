@@ -1,0 +1,10 @@
+{
+  "name": "ut-tiny-scripts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser tooling (screenshots, smoke). Separate from the game's dependencies; install with `npm ci --prefix scripts`.",
+  "dependencies": {
+    "playwright-core": "~1.56.0"
+  }
+}
