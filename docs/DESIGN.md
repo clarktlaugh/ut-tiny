@@ -33,6 +33,7 @@ This document is the plan. Nothing here is implemented yet.
 - Other game modes (CTF, Onslaught, etc.).
 - Client-side prediction and lag compensation. The multiplayer design leaves room
   for them, but v1 multiplayer is "host simulates, clients interpolate".
+- Multiplayer before the single-player game is polished (see §13).
 - Mobile/touch controls.
 - Copying Epic's assets. All models, textures, sounds, and voice lines must be
   original or CC0. Weapon *names* are kept for personal, non-commercial use; they
@@ -595,10 +596,13 @@ Each milestone ends with something playable in the browser.
 | **M4** | Full arsenal | Sniper, Scoped Super Shock, Mines, Teleporter, Redeemer (guided + shoot-down). Bot tactics for each. Pickups and announcer complete. |
 | **M5** | Laundry room realistic art pass | Procedural props replaced with Blender GLTF at real-world dimensions, PBR + detail-map materials, baked lightmaps and probes, environment reflections, ACES tonemapping, ambience. This milestone also establishes the shared material library and the bake/export pipeline. |
 | **M6** | More maps | Kid's Bedroom, Kitchen, Home Theater, Bathroom, Master Bedroom, Basement Game Room, Unfinished Basement, each grey-boxed and bot-tested before art, in that order. |
-| **M7** | Multiplayer | PlayroomTransport, HostSession/ClientSession, lobby UI, 2–8 players with bots filling slots. |
-| **M8** | Polish | Settings, quality presets, menus, music, a final lighting and material pass across all maps, production Netlify deployment with asset caching tuned. |
+| **M7** | Single-player polish | The game should feel finished as a single-player product before any networking. Movement and weapon tuning from playtests; bot skill curve across all eight levels; menus, settings and quality presets complete; music and full announcer set; loading screens and asset streaming; performance pass against the §12 budget on an integrated GPU; a lighting and material consistency pass across all maps; accessibility basics (remappable keys, FOV, colorblind-safe HUD). Runs as one or more rounds until the user signs off on the production Netlify deploy. |
+| **M8** | Multiplayer | PlayroomTransport, HostSession/ClientSession, lobby UI, 2–8 players with bots filling slots. Built on a stable, polished single-player base so network bugs are not confused with gameplay bugs. |
+| **M9** | Multiplayer polish | Snapshot rate and bandwidth tuning, host migration, ping display, join-in-progress, a final pass on anything the network layer exposed. |
 
 M0–M3 are the critical path: if movement and bots are fun in a grey box, everything else is production.
+Polish (M7) deliberately precedes multiplayer (M8): networking only multiplies
+whatever gameplay and performance problems already exist, so they get fixed first.
 
 ---
 
@@ -624,7 +628,7 @@ Netlify is already linked to this repository and is the sole hosting target.
 | Realistic look tanks frame rate in browsers | Baked lighting with a single real-time shadow light; LODs; KTX2 textures; quality presets measured on an integrated GPU at every milestone, not at the end. |
 | Textures look blurry up close at 40× | Detail normal/roughness layer on every material from M5 onward; test with the camera 0.5 m from a surface as the acceptance check. |
 | Navmesh on soft/lumpy geometry (clothes pile) | Author simplified nav collision for organic props; bake from a dedicated nav mesh layer, not render geometry. |
-| Playroom RPC throughput | Measure at M7 with 8 players at 20 Hz snapshots; fall back to 10 Hz snapshots + interpolation, or delta compression. |
+| Playroom RPC throughput | Measure at M8 with 8 players at 20 Hz snapshots; fall back to 10 Hz snapshots + interpolation, or delta compression. |
 | Browser audio restrictions | Resume AudioContext on first click (the menu's Play button). |
 | Scope creep from eight maps × eight weapons | Everything is data-driven; new weapons/maps are rows and files, not systems. Laundry room must be fun before map two starts. |
 

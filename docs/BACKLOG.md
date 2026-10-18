@@ -54,7 +54,8 @@ reviewed, H = human sign-off on the Netlify deploy preview.
 ## Later milestones
 
 M4 (full arsenal incl. disc cam and nose cam), M5 (laundry room realistic art),
-M6 (seven more maps), M7 (PlayroomKit), M8 (polish) are broken down the same way
+M6 (seven more maps), M7 (single-player polish, one or more rounds), M8
+(PlayroomKit), M9 (multiplayer polish) are broken down the same way
 when their predecessor is one packet from done. Expected Fable packets in them:
 view-target system and both cam overlays; translocator and Redeemer behaviors;
 the first PBR material set with macro+detail layering; the washing machine and
