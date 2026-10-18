@@ -17,7 +17,11 @@ This document is the plan. Nothing here is implemented yet.
 - Eight weapons: Redeemer, Super Shock Rifle, Super Shock Rifle (scoped), Sniper
   Rifle, Rocket Launcher, Assault Rifle, Proximity Mines, Teleporter (translocator).
 - Deathmatch rules: frag limit, time limit, respawns, weapon/health/shield pickups.
-- Four "tiny" maps, laundry room first.
+- Eight "tiny" maps, laundry room first: laundry room, home theater, basement game
+  room, bathroom, kid's bedroom, master bedroom, unfinished basement, kitchen.
+- Realistic appearance: physically based materials, baked global illumination,
+  real-world reference dimensions, and photoreal-leaning textures. The rooms should
+  read as photographs of real homes, not cartoons.
 - Bots that path through the map, pick up items, and fight with per-weapon tactics
   at selectable skill levels.
 - Runs at 60 fps in Chrome/Firefox/Safari on a mid-range laptop with integrated graphics.
@@ -46,7 +50,8 @@ This document is the plan. Nothing here is implemented yet.
 | Navigation | `recast-navigation-js` (Recast/Detour in WASM) | Industry-standard navmesh generation and pathfinding; off-mesh links for jump pads and ledges. |
 | Audio | Web Audio via Three.js `AudioListener` / `PositionalAudio` | Spatialized shots, explosions, footsteps; announcer on a non-positional bus. |
 | Multiplayer (later) | PlayroomKit | Handles lobby, room codes, player presence, host election, RPC, and synced state with no server to run. |
-| Assets | Blender → GLTF; procedural kitbash in code for the grey-box phase | Original low-poly art. CC0 textures from ambientCG / Poly Haven. |
+| Assets | Blender (Cycles for lightmap bakes) → GLTF with KTX2 textures; procedural kitbash in code for the grey-box phase only | Realistic PBR art. CC0 photoscanned textures and HDRIs from Poly Haven / ambientCG; original models. |
+| Hosting | Netlify (already linked to this repository) | Static Vite build, deploy previews per branch/PR for playtesting, CDN for large asset downloads. |
 | Tests | Vitest for simulation logic (movement, weapons, rules, snapshot encode/decode) | Simulation is DOM-free and can be unit-tested headlessly. |
 
 Rapier's JS build is not guaranteed deterministic across machines, which is fine:
@@ -163,11 +168,23 @@ hardest-to-reach spot of each map, announced with a global "Redeemer available" 
 
 ## 7. Maps
 
-All maps share: a skylight-level ambient light from a "window" or ceiling fixture,
-baked or static shadows, a few giant props as the main platforms, a jump-pad
-mechanic themed per room, and an unreachable-without-skill Redeemer spot.
+All maps share: a few giant props as the main platforms, a jump-pad mechanic themed
+per room, an unreachable-without-skill Redeemer spot, and realistic lighting from
+real fixtures (a window, a ceiling light, a lamp) baked into lightmaps.
 Pickups follow UT placement logic: the strongest items are in the open or high up,
 health vials in trails along movement routes, ammo near (but not at) its weapon.
+
+**Art direction: realistic.** Every room is modeled from a real floor plan and real
+furniture dimensions, then scaled by 40. Materials are PBR with photoscanned
+textures. Lighting is baked global illumination from Blender Cycles with real-world
+light temperatures (2700 K bulbs, 5500 K daylight). Dust, scuffs, fingerprints and
+lint are the signature detail at this scale: a tiny player sees surfaces the way a
+macro lens does, so every material needs a close-up detail layer (see §8.3).
+
+Build order: Laundry Room → Kid's Bedroom → Kitchen → Home Theater → Bathroom →
+Master Bedroom → Basement Game Room → Unfinished Basement. The first three cover the
+widest range of materials (appliances, fabric and toys, tile and stainless), so later
+maps mostly reuse the material library.
 
 ### 7.1 Laundry Room (first map, grey-box target)
 
@@ -217,6 +234,52 @@ Pickups: AR near spawns (×2), Mines by the sink pipe, Rockets in the basket, Sn
 - Towel rack: walkway; towels are soft cover.
 - Shower curtain: translucent, blocks sight but not shots.
 - Bright, specular tile; wet floor reflections (screen-space or planar, quality option).
+
+### 7.5 Kid's Bedroom
+
+- Real room 3.5 × 3.0 × 2.4 m → 140 × 120 × 96 m. The largest floor, broken up by toys.
+- Bed: the mattress is a sprawling soft plateau at 22 m with a rumpled duvet (soft terrain, cover). Under the bed is a dark crawl-space with a Super Shield and dust bunnies that block sight.
+- Toy chest with the lid propped open: a two-level room. Building blocks spilled from it form stairs to the bed.
+- Bookshelf: shelves as floors, books as walls, a missing book is a window. Redeemer on the top shelf next to a trophy, reached via the desk lamp arm.
+- Desk with a laptop (screen is a light source and a ramp when half-closed), pencil cup (pillars), and a rolling chair whose wheels and base form a bridge to the bed.
+- Toy train track around the floor: a train runs on a loop as a moving platform and knockback hazard.
+- Jump pads: a pile of foam blocks and a whoopee cushion.
+- Light: a window with blinds casting bar shadows that slowly move; a night-light in the wall socket; a ceiling fixture with a paper shade.
+- Audio: a distant TV through the wall, a ticking clock, the train.
+
+### 7.6 Master Bedroom
+
+- Real room 4.5 × 4.0 × 2.6 m → 180 × 160 × 104 m. Fewer objects than the kid's room, so sight lines are long: a sniper map.
+- King bed: a wide plateau at 26 m. Pillows are soft cover; the headboard is a wall; the gap between bed and wall is a trench.
+- Nightstands either side: lamp (light source, climbable shade), phone charging (cable as a rope-bridge to the bed), a glass of water (translucent, refracts).
+- Dresser with one drawer open: drawer interior is a room; the mirror above reflects (planar reflection, quality option) and gives a view of the Redeemer ledge.
+- Walk-in closet: a side arena of hanging clothes (soft occluders) and shoes as crates; a shoe box with the Rocket Launcher.
+- Ceiling fan: slowly rotating blades are a moving platform at 90 m; the Redeemer sits on the fan housing and is reached by riding a blade from the top of the wardrobe.
+- Jump pads: the mattress edge (bouncy) and a slipper.
+- Light: dawn light through curtains, warm bedside lamps; the mood is soft and low contrast, so the HDR and tonemapping must keep the dark side readable.
+
+### 7.7 Unfinished Basement
+
+- Real space 6.0 × 5.0 × 2.2 m → 240 × 200 × 88 m, the largest and most vertical map. Exposed joists overhead are a full upper level.
+- Concrete floor with a floor drain, a crack, and a damp patch (slippery, reduces friction).
+- Furnace and water heater: two industrial towers with ducts and pipes connecting them to the joists, forming the main vertical routes. The pilot light glows in a hatch (damage volume).
+- Metal storage shelves stacked with cardboard boxes and plastic bins: a three-storey structure; one box is open and holds the Redeemer among holiday decorations.
+- Workbench with tools: a vise, a hanging pegboard (hooks as climbable pegs), a dropped screwdriver as a ramp, a can of screws spilled (rolling hazards).
+- Washer-drain utility sink and a sump pit (kill volume, "sumped" death message).
+- Jump pads: a bike pump and a mousetrap.
+- Light: a single bare bulb with a pull chain, a sliver of daylight from a window well. Deep shadows, dust in the light shafts (volumetric effect at high quality).
+- Audio: furnace ignition, pipes knocking, muffled footsteps upstairs.
+
+### 7.8 Kitchen
+
+- Real room 4.0 × 3.5 × 2.6 m → 160 × 140 × 104 m. Hard, bright, reflective: the showcase map for material realism.
+- Counter run along two walls at 36 m: the main upper level, with a sink (water hazard with disposal kill volume), a drying rack (climbable ribs), a cutting board with a knife (edge is a thin bridge), a fruit bowl (oranges roll), and a toaster (pops a slice as a jump pad on a timer).
+- Stovetop: burners cycle on and off as damage volumes; a pot on the stove is a round room with a steam vent that lifts you.
+- Fridge with the door ajar: shelves inside are a cold-lit side arena; the door's egg tray is a ladder. Magnets on the door are platforms up to the Redeemer on the fridge top, next to a cereal box.
+- Kitchen table and chairs: mid-level platforms; a chair knocked over is a ramp.
+- Floor: tile with grout lines, crumbs, a spill of juice (slippery), a dog bowl (water hazard) and kibble (cover).
+- Jump pads: a sponge and a bag of flour (puff of dust on launch).
+- Light: window daylight over the sink, under-cabinet LEDs, the fridge interior light; stainless steel and glossy tile demand environment reflections (prefiltered room cubemap captured at bake time).
 
 ---
 
@@ -290,6 +353,26 @@ interface InputCommand {
 - FX: pooled particles (sprite sheets), beams (ribbon meshes), explosion light flash, decals (capped), gibs (ragdoll-free: a few physics-less chunks with simple ballistic motion), screen flash for Redeemer, zoom overlay.
 - HUD is a DOM overlay (health/shield/ammo/weapon bar/kill feed/announcer/scoreboard), scaled by CSS. Crosshair is per-weapon SVG.
 - Quality presets: shadows on/off and resolution, postprocessing (bloom, SSAO) on/off, render scale.
+
+**Realistic look pipeline**
+
+- Physically based materials everywhere (`MeshStandardMaterial` / `MeshPhysicalMaterial`): albedo, normal, roughness, metalness, AO; clearcoat for appliance enamel and gloss paint; transmission for glass, water glasses, the shower curtain; sheen for fabric.
+- **Macro + detail layering.** At 40× scale a 2 k tile texture covers a few meters of in-game surface and looks blurry up close. Every material gets a second, tiling detail normal/roughness map (fabric weave, brushed metal, concrete grain, wood pores, dust) blended in via a small material extension (`onBeforeCompile`). This is the single most important technique for selling the "tiny" effect.
+- Baked lighting: lightmaps (second UV set) for all static geometry, baked in Blender Cycles with real fixture positions and color temperatures; exported as RGBM or HDR-encoded KTX2. Dynamic objects (pawns, projectiles, pickups) are lit by light probes (spherical harmonics sampled from a probe grid baked alongside the lightmaps) plus one real-time shadow-casting light per map for the key fixture.
+- Reflections: a prefiltered environment cubemap captured per map at bake time; planar reflections for mirrors and wet floors on the high preset; screen-space reflections optional.
+- Postprocessing: ACES filmic tonemapping with per-map exposure, bloom (low threshold, subtle), SSAO on medium and above, a mild vignette and film grain, FXAA/SMAA or TAA. No stylization filters.
+- Surface detail meshes: decals for scuffs, stains, labels and fingerprints; instanced small props (crumbs, lint, screws, popcorn) placed by scatter tools in Blender.
+- Physical camera: 100° FOV but with realistic depth of field only when zoomed (scope), so the giant-room scale stays legible.
+- Cloth and soft objects (duvet, towels, clothes pile) are sculpted and baked, not simulated at runtime; collision uses simplified convex hulls.
+
+**Asset pipeline**
+
+1. Block out the room in code or Blender from a real floor plan and furniture measurements (grey box).
+2. Playtest layout with bots; iterate until routes and pickup timing are right.
+3. Model props in Blender at real scale (meters), parent to the room, apply the 40× scale on export. Reuse a shared material library.
+4. Bake lightmaps, probes and the environment cubemap in Blender (Cycles, denoised); pack to KTX2 (`toktx`, BasisU UASTC for normal maps, ETC1S for albedo).
+5. Export GLTF with Draco or meshopt compression and custom properties for collision mode, nav mesh layer, pickup/spawn/jump pad markers. A script converts the exported scene into a `MapDef`.
+6. CI (Netlify build) runs the GLTF → `MapDef` conversion and the texture packing so the repo stores source assets, not derivatives, where size permits; large bakes are committed as compressed KTX2 via Git LFS.
 
 ### 8.4 Audio (`audio/`)
 
@@ -452,10 +535,11 @@ interface Transport {
 ## 12. Performance budget
 
 - Target: 60 fps at 1080p on a 2020-era integrated GPU; 120 fps on discrete.
-- Scene: ≤ 300 k triangles visible, ≤ 150 draw calls (instancing for repeated props like clothespins, pills, popcorn), ≤ 2 shadow-casting lights (baked AO/lightmaps for the rest once maps go to Blender).
+- Scene: ≤ 1 M triangles visible on the high preset (≤ 400 k on low via LODs), ≤ 300 draw calls (instancing for repeated props like clothespins, crumbs, popcorn, screws; merged static geometry per material), exactly one real-time shadow-casting light per map, everything else baked.
+- Textures: ≤ 512 MB of GPU texture memory per map at high (KTX2 keeps most of it compressed on the GPU), ≤ 192 MB at low; 4 k lightmap atlases, 2 k material textures, 1 k detail maps.
 - Sim: 60 Hz tick must stay under 2 ms with 8 pawns and 50 projectiles; measured in a Vitest benchmark.
 - Pools for projectiles, particles, decals, and audio sources; no per-frame allocation in the hot path.
-- Assets: GLTF with Draco/meshopt, KTX2 textures, total initial download under 25 MB; maps lazy-load.
+- Assets: GLTF with Draco/meshopt, KTX2 textures, initial download under 25 MB (menu, UI, weapons); each realistic map is a separate lazy-loaded bundle under 60 MB, served from Netlify's CDN with long-lived cache headers and a loading screen with progress.
 
 ---
 
@@ -470,30 +554,44 @@ Each milestone ends with something playable in the browser.
 | **M2** | Core combat | Assault Rifle, Rocket Launcher, Super Shock Rifle with view models, FX, sounds, damage, death, respawn. Target dummies. |
 | **M3** | Bots v1 | Navmesh bake, pathing, roaming for pickups, engaging with M2 weapons at 3 skill levels. First 1v3 match completes with frag limit, kill feed, scoreboard. |
 | **M4** | Full arsenal | Sniper, Scoped Super Shock, Mines, Teleporter, Redeemer (guided + shoot-down). Bot tactics for each. Pickups and announcer complete. |
-| **M5** | Laundry room art pass | Procedural props replaced with GLTF, textures, lighting, ambience, polish of pickup placement from playtesting. |
-| **M6** | More maps | Home Theater, then Game Room, then Bathroom, each grey-boxed and bot-tested before art. |
+| **M5** | Laundry room realistic art pass | Procedural props replaced with Blender GLTF at real-world dimensions, PBR + detail-map materials, baked lightmaps and probes, environment reflections, ACES tonemapping, ambience. This milestone also establishes the shared material library and the bake/export pipeline. |
+| **M6** | More maps | Kid's Bedroom, Kitchen, Home Theater, Bathroom, Master Bedroom, Basement Game Room, Unfinished Basement, each grey-boxed and bot-tested before art, in that order. |
 | **M7** | Multiplayer | PlayroomTransport, HostSession/ClientSession, lobby UI, 2–8 players with bots filling slots. |
-| **M8** | Polish | Settings, quality presets, menus, music, a trailer-grade lighting pass, itch.io/static-host deployment. |
+| **M8** | Polish | Settings, quality presets, menus, music, a final lighting and material pass across all maps, production Netlify deployment with asset caching tuned. |
 
 M0–M3 are the critical path: if movement and bots are fun in a grey box, everything else is production.
 
 ---
 
-## 14. Risks and mitigations
+## 14. Deployment (Netlify)
+
+Netlify is already linked to this repository and is the sole hosting target.
+
+- Build: `npm run build` (Vite) → publish `dist/`. Node version pinned in `.nvmrc` / `netlify.toml`.
+- Branch deploys and deploy previews are on, so every PR gets a playable URL for playtesting; `main` is production.
+- `netlify.toml` sets: SPA redirect (`/* → /index.html 200`), `Cache-Control: immutable` for hashed assets under `/assets/`, correct `Content-Type` for `.wasm`, `.ktx2`, `.glb`, and `Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` headers only if we later adopt multithreaded WASM (not needed for Rapier or Recast single-threaded builds).
+- Large binary assets (baked lightmaps, GLTF) live in Git LFS; Netlify's build fetches LFS objects (enable in site settings) or, if LFS bandwidth becomes a problem, baked assets move to Netlify Blobs / Large Media and the build pulls them.
+- PlayroomKit later needs no server-side pieces, so Netlify static hosting still suffices for multiplayer. Netlify Functions are reserved for optional extras (leaderboards, match stats).
+
+---
+
+## 15. Risks and mitigations
 
 | Risk | Mitigation |
 |---|---|
 | Movement doesn't feel like UT | Build the controller first with a tuning panel (live sliders); compare against recorded UT2004 footage; keep numbers in a single `movement.ts` table. |
 | Bots feel dumb or robotic | Invest in perception memory and strafe/dodge variety early (M3); add skill-based noise rather than perfect aim with a handicap. |
-| Giant-scale art is expensive | Grey box every map and prove the layout before any art; reuse props across maps (bottles, cloth, cords); CC0 textures with detail maps. |
+| Realistic giant-scale art is expensive | Grey box every map and prove the layout before any art; one shared material library and prop set reused across maps (bottles, cloth, cords, cardboard, wood, tile); CC0 photoscanned textures; strict macro + detail-map approach so textures stay cheap. Budget roughly 2–3× the time of the gameplay work for art. |
+| Realistic look tanks frame rate in browsers | Baked lighting with a single real-time shadow light; LODs; KTX2 textures; quality presets measured on an integrated GPU at every milestone, not at the end. |
+| Textures look blurry up close at 40× | Detail normal/roughness layer on every material from M5 onward; test with the camera 0.5 m from a surface as the acceptance check. |
 | Navmesh on soft/lumpy geometry (clothes pile) | Author simplified nav collision for organic props; bake from a dedicated nav mesh layer, not render geometry. |
 | Playroom RPC throughput | Measure at M7 with 8 players at 20 Hz snapshots; fall back to 10 Hz snapshots + interpolation, or delta compression. |
 | Browser audio restrictions | Resume AudioContext on first click (the menu's Play button). |
-| Scope creep from four maps × eight weapons | Everything is data-driven; new weapons/maps are rows and files, not systems. Laundry room must be fun before map two starts. |
+| Scope creep from eight maps × eight weapons | Everything is data-driven; new weapons/maps are rows and files, not systems. Laundry room must be fun before map two starts. |
 
 ---
 
-## 15. Open decisions (defaults chosen; change any of these)
+## 16. Open decisions (defaults chosen; change any of these)
 
 1. **Proximity mines**: baseline is static proximity mines with manual detonate on alt fire; UT's crawling spider mines are a stretch goal. Default: static first.
 2. **Weapon stay**: on (UT default). Default: on, Redeemer excepted.
@@ -502,4 +600,6 @@ M0–M3 are the critical path: if movement and bots are fun in a grey box, every
 5. **UDamage**: not requested. Default: include as a map option, off in the laundry room.
 6. **FOV default**: 100 (UT2004 default was 90, modern players expect wider). Default: 100.
 7. **Names**: keep UT weapon names in a single strings table. Default: keep.
-8. **Hosting**: static site (GitHub Pages / Netlify / itch.io). Default: GitHub Pages via Vite build.
+8. **Hosting**: decided, Netlify (already linked to the repo). See §14.
+9. **"Basement" vs "Basement Game Room"**: I read these as two distinct maps, a finished game room and an unfinished utility basement. Default: both, unfinished basement built last.
+10. **Map build order**: Laundry → Kid's Bedroom → Kitchen → Home Theater → Bathroom → Master Bedroom → Game Room → Unfinished Basement, chosen to establish the material library early. Reorder freely.
