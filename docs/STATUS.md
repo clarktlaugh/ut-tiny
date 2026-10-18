@@ -12,6 +12,7 @@ Always current. Every PR updates its own line. Last updated by P4.
 - P2: Contracts v1 (branch `packet/2-contracts`, issue #3): `src/sim/types.ts`, `src/sim/rng.ts`, `src/net/transport.ts`, `src/render/viewTarget.ts`, contract tests under `tests/contracts/`.
 - P3: Fixed-step game loop + `LocalSession` + `LoopbackTransport` (branch `packet/3-game-loop`, issue #4): `src/session/gameLoop.ts` (fixed 60 Hz accumulator, render alpha, pause on blur/hidden), `src/session/localSession.ts`, `src/net/loopback.ts`; tests in `src/session/*.test.ts`.
 - P4: Owned-paths CI check, PR template, auto-merge and Claude review workflows (branch `packet/4-owned-paths-ci`, issue #5): `.github/`, `scripts/check-owned-paths.ts`.
+- P6: Rapier physics glue (branch `packet/6-rapier-glue`, issue #7): `src/sim/physics/` — `PhysicsWorld` with static colliders from `MapDef` brushes (box, cylinder, ramp) and optional prop geometry, raycast / shape-cast / overlap queries with hit masks and actor ignore, actor capsules, and deterministic sensor enter/exit events for volumes, jump pads and custom boxes.
 
 ## Known issues
 
