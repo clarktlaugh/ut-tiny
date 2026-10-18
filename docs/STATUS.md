@@ -1,6 +1,6 @@
 # Status
 
-Always current. Every PR updates its own line. Last updated by P4.
+Always current. Every PR updates its own line. Last updated by P9.
 
 ## Merged
 
@@ -18,6 +18,7 @@ Always current. Every PR updates its own line. Last updated by P4.
 
 - P7: Kinematic character controller (branch `packet/7-character-controller`, issue #8): `src/sim/movement/` — `CharacterMover` (per-pawn `MoverState`, capsule sweeps against `PhysicsWorld`: slide, step-up ≤ 0.45 m, ground snap, walls, ramps), full UT set from §4 (run 8.8 m/s, 19 m/s² gravity, jump, near-apex double jump, dodge with 0.5 s cooldown, wall dodge off a wall behind the dodge, 35 % air control, crouch, fall damage, `launch()` for jump pads), `jump`/`dodge`/`land`/`footstep` events, pure kinematics helpers; `src/app/devTuning.ts` — live slider panel over `MovementConfig` behind `?tuning=1` / Vite dev, persisted to localStorage (not yet mounted by `main.ts`).
 - Fix main (issue #36): `.github/workflows/claude-review.yml` was invalid YAML (unquoted `stub: PR` in `run:`), so every run failed with zero jobs; `run` is now a block scalar.
+- P9: Laundry room grey-box `MapDef` (branch `packet/9-laundry-room`, issue #10): `src/maps/laundry-room.ts` — `LAUNDRY_ROOM` at §7.1 dimensions (washer with open-lid water trap, dryer with drum room and door ramp, 72 m shelf with the Redeemer, hose tunnel behind the machines up to a 40 m vent landing, folding table with basket cage and 35° ironing-board ramp plus iron damage volume, utility sink with basin, sump kill volume and vials, clothesline walkway with hanging laundry, floor drain, clothes-pile steps), 8 spawns, every weapon placed, 5 jump pads with launches computed from §4 gravity, nav links, 6 named cameras, `LAUNDRY_LANDMARKS`. Routes verified by simulation with `CharacterMover`; fall damage over ~32 m drops is lethal with current §4 tuning (see the PR).
 
 ## Known issues
 
