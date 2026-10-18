@@ -1,0 +1,7 @@
+dist/
+node_modules/
+package-lock.json
+docs/DESIGN.md
+docs/BACKLOG.md
+README.md
+.github/
