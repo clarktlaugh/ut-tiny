@@ -116,14 +116,49 @@ All weapons except the Super Shock Rifle have finite ammo with separate ammo pic
 
 | Slot | Weapon | Primary | Alt fire | Ammo (start / max) |
 |---|---|---|---|---|
-| 1 | **Teleporter** (translocator) | Throw disc (28 m/s, bounces, sticks). | Teleport to disc. Telefrag anyone occupying the destination. 1 s recharge. | ∞ |
+| 1 | **Teleporter** (translocator) | No disc out: throw disc (28 m/s, bounces, comes to rest). Disc out: **tap** recalls it; **hold** (≥ 0.2 s) switches your view to the disc's camera for as long as you hold, in flight or at rest (see §5.1). | Teleport to the disc, in flight or at rest, from first person or from the disc camera. Telefrag anyone occupying the destination. 1 s recharge. | ∞ |
 | 2 | **Assault Rifle** | Hitscan bullets, 7 dmg, 10 shots/s, spread grows while firing. | Grenade: lobbed, bounces, 2.5 s fuse (or on contact with a pawn), 60 dmg, 3.5 m radius. | 100 / 200 bullets, 4 / 8 grenades |
 | 3 | **Proximity Mines** | Lob a mine (bounces, lands, arms after 1 s). Up to 4 live per player. Detonates when an enemy is within 4 m: 80 dmg, 5 m radius. | Detonate all your mines now. (Stretch: UT's spider-mine behavior — paint a target with a laser and mines crawl toward it.) | 8 / 16 |
 | 4 | **Rocket Launcher** | Rocket, 27 m/s, 90 dmg direct, 4.4 m splash with falloff and knockback. Hold to load up to 3 rockets; release fires a horizontal spread. | Same loading, but fires a tight spiral. Tap alt while loading to toggle grenade mode (bouncing rockets, 2.5 s fuse). | 12 / 30 |
 | 5 | **Sniper Rifle** | Hitscan, 70 dmg body, 140 headshot, 1.33 s between shots, tracer + "HEADSHOT" announcer. | Zoom 2×–8× (hold to zoom in, scroll adjusts). Moving while zoomed adds sway. | 20 / 40 |
 | 6 | **Super Shock Rifle** | Instant-kill hitscan beam (1000 dmg), 0.75 s between shots. Bright beam that lingers 0.3 s so the shooter can be located. | Shock core projectile for mobility/denial? **No** — keep it pure instagib: alt fire is also the beam. | ∞ |
 | 7 | **Super Shock Rifle (scoped)** | Same beam. | Zoom 2×–6× (same scope UX as sniper). | ∞ |
-| 8 | **Redeemer** | Slow nuke (20 m/s). 250 dmg at center, 50 m radius with falloff, 1.5 s screen flash, kills the shooter too if they're inside. One shot. Can be shot down in flight (the warhead has 50 hp; destroying it causes a small 4 m fizzle, not a nuke). | Guided: the camera rides the missile; the shooter steers it until impact or until they are killed. Shooter is stationary and vulnerable while guiding. | 1 / 1 |
+| 8 | **Redeemer** | Slow nuke (20 m/s) fired straight ahead. 250 dmg at center, 50 m radius with falloff, 1.5 s screen flash, kills the shooter too if they're inside. One shot. Can be shot down in flight (the warhead has 50 hp; destroying it causes a small 4 m fizzle, not a nuke). | Guided: your view switches to the **nose camera** and the mouse steers the missile until impact (see §5.1). Fire detonates early. Your body stands still and is vulnerable while guiding. | 1 / 1 |
+
+### 5.1 Remote camera views (translocator cam and Redeemer nose cam)
+
+Both weapons let the player see through a remote object, exactly as in UT2004. They
+share one **view-target** system in the renderer: the render camera can be attached
+to any entity instead of the local pawn, with its own overlay, while the pawn keeps
+existing (and dying) in the world.
+
+**Translocator disc camera**
+
+- With a disc out, hold primary fire to view through the disc. Release to return to first person. A dedicated "disc cam" bind is also offered for players who prefer a toggle.
+- **In flight**: the camera sits at the disc, stabilized to look along the disc's velocity (the disc itself tumbles; the camera does not). Mouse look is disabled in flight so the view reads as a thrown camera, with mild smoothing on bounces.
+- **At rest**: the camera is gyro-leveled at the disc's position and the mouse gives free look (full yaw, pitch clamped ±80°). This is the scouting use: throw the disc over a washing machine, look around, decide, then alt-fire to arrive or tap primary to recall.
+- Teleporting while in the disc cam places you facing the direction the camera was looking. Teleporting from first person keeps your current facing (UT behavior).
+- Your body stays where it is, fully vulnerable, shown in third person to everyone else. Damage to the body flashes the cam overlay red and plays the hit sound at normal volume so the player knows to bail. Death ends the cam view and recalls the disc.
+- A **disrupted** disc (shot by an enemy, per open decision 3) shows static in the cam with a "DISRUPTED" warning; teleporting to it kills you, so the cam is also how you check.
+- Audio: the listener stays with the body by default (so threats near you are audible), with a settings option to move it to the disc.
+- Overlay: letterboxed feed with a faint scanline and chromatic aberration, "TRANSLOCATOR CAM" label, disc state (IN FLIGHT / LANDED / DISRUPTED), distance from your body to the disc, and a small picture-in-picture of your own first-person view in the corner so you are not blind at your body (medium quality and above; low quality shows only the body's health bar). No crosshair, since you cannot fire from the cam.
+
+**Redeemer nose camera**
+
+- Alt fire launches the warhead and immediately switches the view to a camera on its nose, looking forward. Primary fire launches unguided with no camera change.
+- Steering: mouse input becomes a turn-rate command, clamped at 70°/s yaw and 50°/s pitch, with a little inertia, so the missile banks into turns. Speed is constant at 20 m/s. There is no fuel; the missile flies until it hits something.
+- Fire detonates early. Alt fire during flight does nothing (prevents accidental detonation). You cannot switch weapons while guiding.
+- The guiding body is frozen (no movement, no firing) and vulnerable. If the shooter dies while guiding, the warhead detonates in place (UT2004 behavior), so hunting the Redeemer user is a real counter alongside shooting the warhead down.
+- The warhead can be shot down during guidance; the cam cuts to static for 0.3 s, then returns to first person with a "WARHEAD DESTROYED" message.
+- Overlay: full-screen feed with heavier noise and distortion than the disc cam, a targeting reticle at the missile's heading, speed and altitude readouts, time since launch, a flashing "GUIDED MISSILE" label and a body-health bar. A warning tone plays when the body takes damage.
+- Audio: listener moves with the warhead (rocket roar, wind), with the body's damage sounds mixed in non-positionally.
+
+**Implementation notes**
+
+- The simulation owns the facts: disc position/velocity/state, warhead position/orientation/alive, and which pawn is "viewing" or "guiding" what. It never knows about cameras. Guidance consumes the guiding pawn's `yaw`/`pitch` input as a steering command instead of as look rotation, and the `camView` button bit marks "I am holding the disc cam".
+- The renderer's `ViewTargetController` resolves what the local player should see each frame (own pawn, disc, warhead), swaps camera parent and overlay, hides the first-person view model, and interpolates like any other entity. Switching takes one frame; no transition blend except the static burst on destruction.
+- Bots do not need the camera: `BotController` reads disc and warhead state directly and uses the same recall/teleport/steer inputs, so the rules are identical for everyone.
+- In multiplayer the view target is purely client-side. The host replicates disc, warhead and "guiding" flags in the snapshot; remote players see the guiding body standing still and the disc/warhead moving. Steering latency is the normal input round trip, which is acceptable at 20 m/s.
 
 Common rules:
 
@@ -336,7 +371,7 @@ interface InputCommand {
   moveY: number;      // -1..1 forward/back
   yaw: number;        // radians
   pitch: number;      // radians
-  buttons: number;    // bitmask: fire, altFire, jump, dodgeL/R/F/B, crouch, use
+  buttons: number;    // bitmask: fire, altFire, jump, dodgeL/R/F/B, crouch, use, camView
   weapon: number;     // requested slot, 0 = no change
 }
 ```
@@ -350,6 +385,7 @@ interface InputCommand {
 - A `SceneView` mirrors world entities to Three.js objects via an ID → object map, created/destroyed from world events.
 - Render runs at display refresh; state is interpolated between the last two sim ticks (alpha = accumulator / dt).
 - First-person view model rendered in a second camera pass (separate FOV, never clips into walls). Weapon bob/sway driven from pawn velocity.
+- `ViewTargetController`: the render camera follows a view target that is normally the local pawn but can be the translocator disc or the Redeemer warhead (§5.1). Each target supplies position, orientation rule (eye, velocity-stabilized, gyro-leveled free look, missile nose), overlay, and whether the view model is shown. The optional picture-in-picture body view renders the pawn camera to a small render target.
 - FX: pooled particles (sprite sheets), beams (ribbon meshes), explosion light flash, decals (capped), gibs (ragdoll-free: a few physics-less chunks with simple ballistic motion), screen flash for Redeemer, zoom overlay.
 - HUD is a DOM overlay (health/shield/ammo/weapon bar/kill feed/announcer/scoreboard), scaled by CSS. Crosshair is per-weapon SVG.
 - Quality presets: shadows on/off and resolution, postprocessing (bloom, SSAO) on/off, render scale.
@@ -519,6 +555,7 @@ interface Transport {
 4. Rendering is driven only from world state + event stream, so a client that receives snapshots instead of stepping a local world renders identically.
 5. Entity IDs are numeric and allocated by the world, never by the renderer.
 6. The local-player view model and HUD read from "my pawn ID," which a client gets from the host rather than assuming pawn 0.
+7. Camera view targets (disc cam, nose cam) are decided by the renderer from replicated entity state, never sent over the network.
 
 **Later refinements** (not in v1 multiplayer): client-side prediction for the local pawn with reconciliation, host-side lag compensation for hitscan, delta snapshots, interest management (irrelevant at ≤ 8 players).
 
@@ -528,6 +565,8 @@ interface Transport {
 
 - Mouse look with Pointer Lock; WASD; Space jump (press again at apex for double jump); double-tap WASD or dedicated keys for dodge; Ctrl crouch; LMB fire, RMB alt fire; 1–8 slots, scroll wheel cycles, Q last weapon; Tab scoreboard; F feign death (optional UT flavor); Esc menu.
 - HUD: health and shield bottom-left, ammo bottom-right, weapon bar bottom-center (highlights owned weapons), kill feed top-right, announcer text center-top, frag/time status top-left, per-weapon crosshair, zoom overlay with magnification readout, damage direction indicator (optional).
+- Remote camera overlays (§5.1): translocator cam and Redeemer nose cam replace the crosshair and view model with a camera-feed treatment, keep the kill feed and the body's health visible, and show the picture-in-picture body view on medium quality and above.
+- Extra binds: disc cam toggle (default none, hold primary is the primary path), Redeemer early detonate is primary fire.
 - Settings: sensitivity, FOV (80–110, default 100), invert Y, auto-switch on pickup, master/SFX/music/announcer volume, quality preset, render scale, bot count and skill, frag/time limits. Persisted to localStorage.
 
 ---
@@ -595,7 +634,9 @@ Netlify is already linked to this repository and is the sole hosting target.
 
 1. **Proximity mines**: baseline is static proximity mines with manual detonate on alt fire; UT's crawling spider mines are a stretch goal. Default: static first.
 2. **Weapon stay**: on (UT default). Default: on, Redeemer excepted.
-3. **Translocator disc disruption**: in UT, shooting an enemy's disc "disrupts" it so teleporting kills the user. Default: include, it's cheap and fun.
+3. **Translocator disc disruption**: in UT, shooting an enemy's disc "disrupts" it so teleporting kills the user. Default: include, it's cheap and fun, and the disc cam is how you check for it.
+3a. **Disc cam audio listener**: stays with your body by default, option to follow the disc. Default: body.
+3b. **Teleport facing**: when teleporting from the disc cam you arrive facing where the camera looked. Default: yes.
 4. **Crouch**: UT2004 has it but it's rarely useful in DM. Default: include, low priority.
 5. **UDamage**: not requested. Default: include as a map option, off in the laundry room.
 6. **FOV default**: 100 (UT2004 default was 90, modern players expect wider). Default: 100.
