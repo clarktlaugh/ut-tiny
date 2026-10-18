@@ -770,7 +770,46 @@ worker sessions never force-push, never touch files outside owned paths, never
 change the contracts, and never merge their own PR. The dispatcher starts nothing
 when `main` is red; the first `ready` packet it then creates is "fix main".
 
-### 18.5 What the user does
+### 18.5 How model routing is enforced
+
+A session's model is fixed when the session is created and cannot be changed from
+inside it, so routing is decided at creation time and verified at start time.
+
+- **Creation.** Three ways to start work on a given model:
+  1. In the Claude Code app or web UI, pick the model when starting a session on
+     this repo.
+  2. From any session, the `create_session` tool takes a `model` (`claude-sonnet-5-5`,
+     `claude-opus-5-5`, `claude-haiku-5-5`, `claude-fable-5-1`), inherits the current
+     environment, and accepts the packet prompt. This is what the dispatcher uses.
+  3. A scheduled task (`create_trigger` with a fresh session per firing) runs on
+     the model set via `update_trigger`; the dispatcher and digest tasks are set to
+     Haiku/Sonnet this way.
+  Subagents inside a session (the `Agent` tool with a `model` override) are fine
+  for small sub-steps but do not change the parent session's model.
+- **Verification.** `CLAUDE.md` tells every session, as its first action on a
+  packet, to call `get_session` (no arguments), compare `session_context.model`
+  with the issue's `tier:*` label, and stop with an issue comment if they differ.
+  A Fable session that picks up a Sonnet packet is as much a violation as the
+  reverse.
+- **Visibility.** `get_session` also reports cost per session; the daily digest
+  sums it by tier so drift toward Fable is visible within a day.
+- **The planning session.** The session that wrote this document is Fable. It is
+  used only for Fable-tier work (contracts, reviews of Fable packets, design
+  changes); it spawns Sonnet/Opus sessions for everything else rather than doing
+  that work itself.
+
+### 18.6 Bootstrapping order
+
+1. Merge the `docs/design-plan` branch so sessions can read the plan from `main`.
+2. Spawn **P1** (scaffold) as a Sonnet session. It lands `CLAUDE.md`, `STATUS.md`,
+   `npm run check`, the SessionStart hook and `netlify.toml`.
+3. Spawn a Sonnet session to file P1–P25 as issues from `docs/BACKLOG.md` with
+   tier and sign-off labels, and to create the dispatcher and digest scheduled
+   tasks (set to Haiku).
+4. After P1 merges, run **P2** (contracts) on Fable. From then on the dispatcher
+   runs the loop; the user reviews `signoff:human` previews and the digest.
+
+### 18.7 What the user does
 
 - Review `signoff:human` PRs on their deploy previews (movement feel, each map's
   art, each weapon's FX) and merge or comment.
