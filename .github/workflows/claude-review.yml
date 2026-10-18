@@ -19,4 +19,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Review placeholder
-        run: echo "Claude review stub: PR #${{ github.event.pull_request.number }} (no reviewer configured yet)."
+        run: |
+          echo "Claude review stub: PR #${{ github.event.pull_request.number }} (no reviewer configured yet)."
