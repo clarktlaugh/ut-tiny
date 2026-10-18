@@ -1,0 +1,34 @@
+# Enables auto-merge on packet PRs whose issue is labeled signoff:auto
+# (docs/DESIGN.md §18.4). The PR still merges only after the branch protection
+# on main is satisfied (required checks and review). Requires "Allow auto-merge"
+# in the repository settings. signoff:human PRs are never touched.
+name: Auto-merge
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, edited]
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: write
+
+jobs:
+  enable:
+    if: startsWith(github.event.pull_request.head.ref, 'packet/') && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto-merge for signoff:auto packets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          issue=$(printf '%s' "$PR_BODY" | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' | head -1 | grep -oE '[0-9]+$' || true)
+          if [ -z "$issue" ]; then echo "No linked issue; skipping."; exit 0; fi
+          if gh issue view "$issue" --json labels --jq '.labels[].name' | grep -qx 'signoff:auto'; then
+            gh pr merge "$PR_URL" --auto --merge
+          else
+            echo "Issue #$issue is not signoff:auto; leaving the PR for the human."
+          fi
