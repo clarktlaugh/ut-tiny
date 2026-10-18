@@ -1,25 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Rng } from './rng';
-import {
-  FORCED_RESPAWN_SECONDS,
-  SpawnSelector,
-  forcedRespawnAt,
-  isSpawnProtected,
-  planRespawn,
-  respawnAllowedAt,
-  shouldRespawn,
-  spawnProtectionAfterInput,
-} from './spawn';
-import { Buttons, TICK_RATE, type Pose, type RulesConfig } from './types';
-
-const rules: RulesConfig = {
-  fragLimit: 20,
-  timeLimit: 600,
-  weaponStay: true,
-  spawnProtection: 2,
-  respawnDelay: 1,
-  udamageEnabled: false,
-};
+import { SpawnSelector, planRespawn } from './spawn';
+import { TICK_RATE, type Pose } from './types';
 
 const pose = (x: number, z: number, y = 0): Pose => ({ position: { x, y, z }, yaw: 0, pitch: 0 });
 
@@ -102,47 +84,13 @@ describe('spawn selection', () => {
   });
 });
 
-describe('respawn timing and protection', () => {
-  it('allows respawn after respawnDelay with fire and forces it at 2 s', () => {
-    const respawnAt = respawnAllowedAt(100, rules);
-    expect(respawnAt).toBe(100 + TICK_RATE);
-    const dead = { alive: false, respawnAt };
-    const idle = { buttons: 0 };
-    const fire = { buttons: Buttons.Fire };
-    expect(shouldRespawn(dead, respawnAt - 1, fire, rules)).toBe(false);
-    expect(shouldRespawn(dead, respawnAt, fire, rules)).toBe(true);
-    expect(shouldRespawn(dead, respawnAt, idle, rules)).toBe(false);
-    const forced = forcedRespawnAt(respawnAt, rules);
-    expect(forced).toBe(100 + FORCED_RESPAWN_SECONDS * TICK_RATE);
-    expect(shouldRespawn(dead, forced - 1, idle, rules)).toBe(false);
-    expect(shouldRespawn(dead, forced, idle, rules)).toBe(true);
-    expect(shouldRespawn({ alive: true, respawnAt }, forced, fire, rules)).toBe(false);
-  });
-
-  it('protects for spawnProtection seconds unless the pawn fires', () => {
-    const selector = new SpawnSelector(SPAWNS, { noise: 0 });
-    const plan = planRespawn(
-      9,
-      500,
-      selector,
-      { enemies: [{ x: 0, y: 0.9, z: 1 }] },
-      new Rng(3),
-      rules,
-    );
-    expect(plan.spawnProtectedUntil).toBe(500 + 2 * TICK_RATE);
-    const pawn = { alive: true, spawnProtectedUntil: plan.spawnProtectedUntil };
-    expect(isSpawnProtected(pawn, 500 + 2 * TICK_RATE - 1)).toBe(true);
-    expect(isSpawnProtected(pawn, 500 + 2 * TICK_RATE)).toBe(false);
-    expect(spawnProtectionAfterInput(pawn, 510, { buttons: 0 })).toBe(pawn.spawnProtectedUntil);
-    const after = spawnProtectionAfterInput(pawn, 510, { buttons: Buttons.Fire });
-    expect(isSpawnProtected({ alive: true, spawnProtectedUntil: after }, 510)).toBe(false);
-  });
-
-  it('builds the respawn event and capsule center from the chosen spawn', () => {
+describe('planRespawn', () => {
+  it('returns the chosen pose and the capsule center above it', () => {
     const selector = new SpawnSelector([pose(4, 6, 2)], { noise: 0 });
-    const plan = planRespawn(9, 77, selector, { enemies: [] }, new Rng(1), rules);
+    const plan = planRespawn(9, 77, selector, { enemies: [] }, new Rng(1));
+    expect(plan.pawn).toBe(9);
     expect(plan.spawnIndex).toBe(0);
-    expect(plan.event).toEqual({ type: 'respawn', tick: 77, pawn: 9, pose: pose(4, 6, 2) });
+    expect(plan.pose).toEqual(pose(4, 6, 2));
     expect(plan.center.x).toBe(4);
     expect(plan.center.z).toBe(6);
     expect(plan.center.y).toBeCloseTo(2 + 0.9 + 0.02, 6);

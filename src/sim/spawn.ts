@@ -1,12 +1,10 @@
 /**
- * Respawn timing, spawn protection and spawn point selection (docs/DESIGN.md §6).
+ * Spawn point selection for respawns (docs/DESIGN.md §6).
  *
- * - A dead pawn may respawn `RulesConfig.respawnDelay` seconds after death by
- *   pressing fire, and is respawned automatically `FORCED_RESPAWN_SECONDS`
- *   after death ("respawn after 1–2 s, press fire to respawn sooner").
- * - A respawned pawn is protected for `RulesConfig.spawnProtection` seconds;
- *   firing ends the protection early.
- * - Spawn points are scored by distance to the nearest enemy (capped), how
+ * Respawn timing, spawn protection and the `respawn` event live in
+ * `pawn.ts` (`wantsRespawn`, `respawnPawn`); this module only decides where.
+ *
+ * Spawn points are scored by distance to the nearest enemy (capped), how
  *   recently they were used, and whether an enemy can see them; blocked points
  *   (a pawn standing on them) are skipped. A little seeded noise is added so the
  *   choice is not predictable, while a clearly safer point still wins.
@@ -17,78 +15,7 @@
  */
 import { PAWN_CAPSULE, type CapsuleDims } from './physics/physicsWorld';
 import type { Rng } from './rng';
-import {
-  Buttons,
-  TICK_RATE,
-  type InputCommand,
-  type PawnId,
-  type PawnState,
-  type Pose,
-  type RulesConfig,
-  type SimEvent,
-  type Tick,
-  type Vec3,
-} from './types';
-
-// ---------------------------------------------------------------------------
-// Timing
-// ---------------------------------------------------------------------------
-
-/** Seconds after death at which a pawn respawns without pressing fire (§6). */
-export const FORCED_RESPAWN_SECONDS = 2;
-
-/** Whole ticks covering `seconds` (rounded up, never negative). */
-export function secondsToTicks(seconds: number): number {
-  return Math.max(0, Math.ceil(seconds * TICK_RATE - 1e-9));
-}
-
-/** Tick at which a pawn that died on `deathTick` may respawn; store it in `PawnState.respawnAt`. */
-export function respawnAllowedAt(deathTick: Tick, rules: Readonly<RulesConfig>): Tick {
-  return deathTick + secondsToTicks(rules.respawnDelay);
-}
-
-/** Tick at which a dead pawn is respawned even without pressing fire. */
-export function forcedRespawnAt(respawnAt: Tick, rules: Readonly<RulesConfig>): Tick {
-  return respawnAt + secondsToTicks(Math.max(0, FORCED_RESPAWN_SECONDS - rules.respawnDelay));
-}
-
-/** Whether a dead pawn should respawn this tick, given its input. */
-export function shouldRespawn(
-  pawn: Readonly<Pick<PawnState, 'alive' | 'respawnAt'>>,
-  tick: Tick,
-  input: Readonly<Pick<InputCommand, 'buttons'>>,
-  rules: Readonly<RulesConfig>,
-): boolean {
-  if (pawn.alive || tick < pawn.respawnAt) return false;
-  if ((input.buttons & (Buttons.Fire | Buttons.AltFire)) !== 0) return true;
-  return tick >= forcedRespawnAt(pawn.respawnAt, rules);
-}
-
-/** `PawnState.spawnProtectedUntil` for a pawn respawning on `tick`. */
-export function spawnProtectionUntil(tick: Tick, rules: Readonly<RulesConfig>): Tick {
-  return tick + secondsToTicks(rules.spawnProtection);
-}
-
-/** True while spawn protection holds. */
-export function isSpawnProtected(
-  pawn: Readonly<Pick<PawnState, 'alive' | 'spawnProtectedUntil'>>,
-  tick: Tick,
-): boolean {
-  return pawn.alive && tick < pawn.spawnProtectedUntil;
-}
-
-/**
- * New `spawnProtectedUntil` after this tick's input: firing (either mode)
- * ends protection at once, otherwise it is unchanged.
- */
-export function spawnProtectionAfterInput(
-  pawn: Readonly<Pick<PawnState, 'spawnProtectedUntil'>>,
-  tick: Tick,
-  input: Readonly<Pick<InputCommand, 'buttons'>>,
-): Tick {
-  const firing = (input.buttons & (Buttons.Fire | Buttons.AltFire)) !== 0;
-  return firing ? Math.min(pawn.spawnProtectedUntil, tick) : pawn.spawnProtectedUntil;
-}
+import { TICK_RATE, type PawnId, type Pose, type Tick, type Vec3 } from './types';
 
 // ---------------------------------------------------------------------------
 // Spawn scoring
@@ -239,19 +166,17 @@ function clonePose(p: Readonly<Pose>): Pose {
 export interface RespawnPlan {
   pawn: PawnId;
   spawnIndex: number;
-  /** Spawn pose (feet position), as in the `respawn` event. */
+  /** Spawn pose (feet position); pass to `respawnPawn`. */
   pose: Pose;
   /** Capsule center for `CharacterMover.teleport`. */
   center: Vec3;
-  spawnProtectedUntil: Tick;
-  event: Extract<SimEvent, { type: 'respawn' }>;
 }
 
 /**
- * Pick a spawn and build everything the world needs to respawn `pawn` on
- * `tick`: the pose, the capsule center to teleport to, the protection window
- * and the `respawn` event. The world then resets health, shield and inventory
- * (P12) and calls `mover.teleport(pawn, state, plan.center, plan.pose.yaw)`.
+ * Pick a spawn for `pawn` respawning on `tick` and work out where its capsule
+ * goes. The world then calls `respawnPawn(rec, plan.pose, ctx)` (health,
+ * loadout, protection, `respawn` event) and
+ * `mover.teleport(pawn, moverState, plan.center, plan.pose.yaw)`.
  */
 export function planRespawn(
   pawn: PawnId,
@@ -259,7 +184,6 @@ export function planRespawn(
   selector: SpawnSelector,
   query: Readonly<SpawnQuery>,
   rng: Rng,
-  rules: Readonly<RulesConfig>,
   capsule: Readonly<CapsuleDims> = PAWN_CAPSULE,
 ): RespawnPlan {
   const { index, pose } = selector.pick(tick, query, rng);
@@ -269,7 +193,5 @@ export function planRespawn(
     spawnIndex: index,
     pose,
     center: { x: pose.position.x, y: pose.position.y + lift, z: pose.position.z },
-    spawnProtectedUntil: spawnProtectionUntil(tick, rules),
-    event: { type: 'respawn', tick, pawn, pose: clonePose(pose) },
   };
 }
