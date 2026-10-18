@@ -10,6 +10,7 @@ Always current. Every PR updates its own line. Last updated by P2.
 ## In flight
 
 - P2: Contracts v1 (branch `packet/2-contracts`, issue #3): `src/sim/types.ts`, `src/sim/rng.ts`, `src/net/transport.ts`, `src/render/viewTarget.ts`, contract tests under `tests/contracts/`.
+- P6: Rapier physics glue (branch `packet/6-rapier-glue`, issue #7): `src/sim/physics/` — `PhysicsWorld` with static colliders from `MapDef` brushes (box, cylinder, ramp) and optional prop geometry, raycast / shape-cast / overlap queries with hit masks and actor ignore, actor capsules, and deterministic sensor enter/exit events for volumes, jump pads and custom boxes.
 
 ## Known issues
 
