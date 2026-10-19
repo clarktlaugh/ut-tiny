@@ -21,7 +21,7 @@ export interface DemoEntry {
   /** Milestone from docs/DESIGN.md §18.8, such as `M2`. */
   readonly milestone: string;
   readonly status: DemoStatus;
-  /** Packet that added or last changed the demo, such as `P15`. */
+  /** Packet (`P15`) or, for work outside a packet, pull request (`#59`) that added or last changed it. */
   readonly packet: string;
   /** When it was added or last changed (YYYY-MM-DD); the hub lists newest first. */
   readonly updated: string;
@@ -32,6 +32,21 @@ export interface DemoEntry {
 }
 
 export const DEMOS: readonly DemoEntry[] = [
+  {
+    slug: 'playable',
+    title: 'Quick playable (stopgap)',
+    milestone: 'M2',
+    status: 'dev',
+    packet: '#59',
+    updated: '2026-10-19',
+    whatToCheck: 'Run, jump and shoot target dummies in the laundry room, with FX, HUD and sound.',
+    checklist: [
+      'Tap or click to start; on desktop the mouse locks for looking.',
+      'Move, jump and look around the laundry room, by touch or keyboard and mouse.',
+      'Shoot the target dummies: hits show FX, the HUD updates, and they die and respawn.',
+      'View model, sound and frame rate all hold up together on a phone.',
+    ],
+  },
   {
     slug: 'fx',
     title: 'Combat FX',

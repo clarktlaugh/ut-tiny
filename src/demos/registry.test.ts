@@ -24,7 +24,7 @@ describe('demo registry', () => {
   it.each(DEMOS.map((d) => [d.slug, d] as const))('%s is well formed', (_slug, demo) => {
     expect(demo.title.trim()).not.toBe('');
     expect(demo.milestone).toMatch(/^M\d+$/);
-    expect(demo.packet).toMatch(/^P\d+$/);
+    expect(demo.packet).toMatch(/^(P\d+|#\d+)$/);
     expect(['dev', 'signoff', 'approved']).toContain(demo.status);
     expect(demo.updated).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(Number.isNaN(Date.parse(demo.updated))).toBe(false);

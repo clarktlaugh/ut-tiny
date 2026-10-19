@@ -74,10 +74,6 @@ export default {
   },
   test: {
     include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
-    // World tests step Rapier for hundreds of ticks; under a full parallel run
-    // on CI one of them (the Date.now / performance.now guard) needs more than
-    // vitest's default 5 s.
-    testTimeout: 30_000,
     environment: 'node',
   },
 } satisfies UserConfig & { test: InlineConfig };
