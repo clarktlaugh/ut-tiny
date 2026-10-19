@@ -34,7 +34,9 @@ This document is the plan. Nothing here is implemented yet.
 - Client-side prediction and lag compensation. The multiplayer design leaves room
   for them, but v1 multiplayer is "host simulates, clients interpolate".
 - Multiplayer before the single-player game is polished (see §13).
-- Mobile/touch controls.
+- A polished mobile release. Touch controls good enough to play every sign-off
+  demo on a phone are required from M1 (§18.8); tuning them into a first-class
+  mobile experience is not a goal yet.
 - Copying Epic's assets. All models, textures, sounds, and voice lines must be
   original or CC0. Weapon *names* are kept for personal, non-commercial use; they
   are trivially renameable via a single strings table if that ever matters.
@@ -564,6 +566,7 @@ interface Transport {
 
 ## 11. Controls, HUD, settings
 
+- **Touch (phones and tablets, required for every sign-off demo, §18.8):** left half of the screen is a floating move stick; dragging on the right half looks around (separate touch sensitivity); on-screen buttons for jump, fire, alt fire, crouch and next/previous weapon; a quick flick of the move stick dodges in that direction (the touch equivalent of a double tap); landscape is recommended with a rotate hint in portrait. Touch input feeds the same `InputCommand` as keyboard and mouse, so nothing downstream changes.
 - Mouse look with Pointer Lock; WASD; Space jump (press again at apex for double jump); double-tap WASD or dedicated keys for dodge; Ctrl crouch; LMB fire, RMB alt fire; 1–8 slots, scroll wheel cycles, Q last weapon; Tab scoreboard; F feign death (optional UT flavor); Esc menu.
 - HUD: health and shield bottom-left, ammo bottom-right, weapon bar bottom-center (highlights owned weapons), kill feed top-right, announcer text center-top, frag/time status top-left, per-weapon crosshair, zoom overlay with magnification readout, damage direction indicator (optional).
 - Remote camera overlays (§5.1): translocator cam and Redeemer nose cam replace the crosshair and view model with a camera-feed treatment, keep the kill feed and the body's health visible, and show the picture-in-picture body view on medium quality and above.
@@ -575,6 +578,7 @@ interface Transport {
 ## 12. Performance budget
 
 - Target: 60 fps at 1080p on a 2020-era integrated GPU; 120 fps on discrete.
+- Phones (sign-off demos, §18.8): 30 fps or better on a recent iPhone or mid-range Android in landscape. Touch devices start on the low quality preset with render scale capped at 1.0 and device pixel ratio capped at 2.
 - Scene: ≤ 1 M triangles visible on the high preset (≤ 400 k on low via LODs), ≤ 300 draw calls (instancing for repeated props like clothespins, crumbs, popcorn, screws; merged static geometry per material), exactly one real-time shadow-casting light per map, everything else baked.
 - Textures: ≤ 512 MB of GPU texture memory per map at high (KTX2 keeps most of it compressed on the GPU), ≤ 192 MB at low; 4 k lightmap atlases, 2 k material textures, 1 k detail maps.
 - Sim: 60 Hz tick must stay under 2 ms with 8 pawns and 50 projectiles; measured in a Vitest benchmark.
@@ -585,7 +589,9 @@ interface Transport {
 
 ## 13. Milestones
 
-Each milestone ends with something playable in the browser.
+Each milestone ends with something playable in the browser: a sign-off demo on
+Netlify that runs on a phone (§18.8). A milestone is not done until the user has
+played that demo and merged its PR.
 
 | # | Milestone | Done when |
 |---|---|---|
@@ -600,6 +606,10 @@ Each milestone ends with something playable in the browser.
 | **M8** | Multiplayer | PlayroomTransport, HostSession/ClientSession, lobby UI, 2–8 players with bots filling slots. Built on a stable, polished single-player base so network bugs are not confused with gameplay bugs. |
 | **M9** | Multiplayer polish | Snapshot rate and bandwidth tuning, host migration, ping display, join-in-progress, a final pass on anything the network layer exposed. |
 
+Sign-off demos per milestone (details in §18.8): M1 laundry walkabout, M2 combat
+sandbox, M3 bot deathmatch, M4 arsenal sandbox, M5 laundry art tour, M6 one
+layout demo and one art demo per map, M7 release candidate, M8 two-phone match.
+
 M0–M3 are the critical path: if movement and bots are fun in a grey box, everything else is production.
 Polish (M7) deliberately precedes multiplayer (M8): networking only multiplies
 whatever gameplay and performance problems already exist, so they get fixed first.
@@ -611,7 +621,8 @@ whatever gameplay and performance problems already exist, so they get fixed firs
 Netlify is already linked to this repository and is the sole hosting target.
 
 - Build: `npm run build` (Vite) → publish `dist/`. Node version pinned in `.nvmrc` / `netlify.toml`.
-- Branch deploys and deploy previews are on, so every PR gets a playable URL for playtesting; `main` is production.
+- Branch deploys and deploy previews are on, so every PR gets a playable URL for playtesting; `main` is production at https://tinyut.netlify.app.
+- **Every demo page is part of the production build** (Vite multi-page input), and the same pages also run under the local dev server (§18.8), so there is never a dev-only or Netlify-only demo. Demos live at `/demos/<slug>.html` and the hub at `/demos/` lists them all; until the game menu exists (P24), the site root redirects to the hub. Each build writes `/version.json` with the commit SHA (from Netlify's `COMMIT_REF`) so a reviewer and the preview smoke check can tell the preview is current. See §18.8.
 - `netlify.toml` sets: SPA redirect (`/* → /index.html 200`), `Cache-Control: immutable` for hashed assets under `/assets/`, correct `Content-Type` for `.wasm`, `.ktx2`, `.glb`, and `Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` headers only if we later adopt multithreaded WASM (not needed for Rapier or Recast single-threaded builds).
 - Large binary assets (baked lightmaps, GLTF) live in Git LFS; Netlify's build fetches LFS objects (enable in site settings) or, if LFS bandwidth becomes a problem, baked assets move to Netlify Blobs / Large Media and the build pulls them.
 - PlayroomKit later needs no server-side pieces, so Netlify static hosting still suffices for multiplayer. Netlify Functions are reserved for optional extras (leaderboards, match stats).
@@ -683,9 +694,9 @@ Routing rules:
    Two failed attempts at a tier escalate automatically.
 3. Review tier is always at least the implementation tier: Fable work is reviewed
    by Fable (a second session, not the author).
-4. Gameplay feel (movement, weapon tuning) and all art packets end with a human
-   sign-off on the Netlify deploy preview; everything else can auto-merge when
-   green and reviewed.
+4. Gameplay feel (movement, weapon tuning) and art are signed off by the user
+   inside a playable demo on Netlify (§18.8), never from screenshots or a dev
+   server; everything else auto-merges when green and reviewed.
 
 ---
 
@@ -707,7 +718,10 @@ under half a day of agent time, under ~800 lines of diff). Every packet has:
   vitest + build; plus packet-specific tests the packet must add) and, for visual
   work, the screenshot set it must produce.
 - **Tier**: `tier:fable` / `tier:opus` / `tier:sonnet`.
-- **Sign-off**: `auto` or `human` (art and feel packets).
+- **Sign-off**: `auto` or `human`. `human` is reserved for **demo packets**
+  (§18.8): integration points that ship a playable demo on Netlify. Feature
+  packets are `auto`, proven by tests and screenshots, and are judged by the
+  user inside the next demo.
 
 The issue template lives at `.github/ISSUE_TEMPLATE/work-packet.md`; the initial
 backlog for M0–M3 is in `docs/BACKLOG.md`.
@@ -738,11 +752,29 @@ separate Fable packet, never a side effect of an implementation PR.
   and the user compare before/after.
 - `scripts/smoke.ts`: headless run of a 1v3 bot match for 60 s of sim time; fails
   on exceptions, NaNs, or a bot that never moves. Runs in CI.
-- Netlify deploy previews on every PR give the human sign-off a URL.
+- Netlify deploy previews on every PR give the human sign-off a URL, and the
+  demo hub (§18.8) makes every demo reachable from that URL on a phone.
+- `docs/AUTOMATION.md`: the dispatcher, worker and digest procedures. The
+  scheduled tasks only say "read this file from `main` and follow it", so the
+  automation changes through reviewed PRs instead of by editing task prompts.
 
 ### 18.4 Dispatcher and feedback loop
 
 Scheduled tasks in Claude Code (cloud) drive the loop. No custom infrastructure.
+The exact procedures live in `docs/AUTOMATION.md`; this section is the overview.
+
+Operational lessons, now built into the procedures:
+
+- Scheduled tasks fire into **persistent sessions** created with the repository
+  attached; a fresh session per firing has no repository and no GitHub tools.
+  A persistent session accumulates context, so replace it every few weeks.
+- PRs merged by the auto-merge workflow's `GITHUB_TOKEN` do not close their
+  "Closes #n" issue and do not start CI runs on `main`. The dispatcher closes
+  such issues itself, and workers close their own issue when the PR merges.
+- Branch protection on `main` must require the `check` and `owned-paths` jobs,
+  otherwise auto-merge merges before CI has run.
+- Netlify's checks are not CI. A PR is green only when the GitHub Actions jobs
+  have run and passed on its head commit and it has no merge conflict.
 
 1. **Dispatcher** (Haiku or Sonnet, every hour, fresh session): lists issues
    labeled `ready` whose dependencies are closed, caps concurrency (default 3
@@ -758,11 +790,15 @@ Scheduled tasks in Claude Code (cloud) drive the loop. No custom infrastructure.
 3. **Reviewer** (Opus, or Fable for Fable packets; triggered per PR): reviews
    against the packet's acceptance criteria and the design doc, requests changes
    or approves. Auto-merge is enabled for `signoff:auto` packets, so a green,
-   approved PR merges itself; `signoff:human` PRs wait for the user with the deploy
-   preview link in the PR description.
-4. **Digest** (Haiku, daily): posts one summary to the user (what merged, what's
-   waiting for sign-off with preview links, what escalated and why, what the
-   dispatcher will start next) and refreshes `docs/STATUS.md` if a PR forgot.
+   approved PR merges itself; `signoff:human` PRs wait for the user with a
+   tap-to-play demo link as the first line of the PR description (§18.8).
+4. **Digest** (Haiku, daily): posts one summary to the user, written for a phone,
+   that opens with "Waiting on you" and a tap-to-play link per demo, then what
+   merged, what escalated and why, and what the dispatcher starts next; it
+   refreshes `docs/STATUS.md` if a PR forgot.
+
+Priority: the dispatcher starts issues labeled `priority` before all others,
+then the lowest packet number.
 
 Guardrails: a packet that fails CI three times in a row, or whose session errors
 twice, is relabeled `blocked` with the logs attached and left for the digest;
@@ -811,7 +847,82 @@ inside it, so routing is decided at creation time and verified at start time.
 
 ### 18.7 What the user does
 
-- Review `signoff:human` PRs on their deploy previews (movement feel, each map's
-  art, each weapon's FX) and merge or comment.
+The user works from a phone. Everything they are asked to do must be doable there.
+
+- Tap the demo link in a `signoff:human` PR (or the digest), play it on the
+  phone, then merge the PR in the GitHub app to approve, or comment to ask for
+  changes. The worker session is subscribed and answers the comment.
 - Read the daily digest; answer escalations by commenting on the issue.
 - Add or reprioritize packets by editing issues and labels. Everything else runs.
+
+### 18.8 Playable demos for sign-off
+
+**Rule.** Anything the user is asked to sign off on is a playable demo on the PR's
+Netlify deploy preview that runs on a phone. Screenshots, videos and written
+descriptions are supporting material. A packet that cannot produce such a demo
+is not `signoff:human`; it is `signoff:auto` and gets judged in the next demo.
+
+**Two ways to run every demo.** Each demo is one page that works in both places;
+neither is optional.
+
+| Where | How | Use it for |
+|---|---|---|
+| Netlify | Deploy preview per PR, production at https://tinyut.netlify.app/demos/ | Sign-off from a phone; sharing |
+| Local dev server | `npm run dev`, then `/demos/` | Fast iteration with hot reload; debugging |
+| Local production build | `npm run build && npm run preview`, then `/demos/` | Performance measurement: the dev server is unminified and unbundled, so its frame times are not representative |
+| Phone on the same Wi-Fi | `npm run dev:lan` or `npm run preview:lan`, then open the printed network URL | Real phone GPU and touch against local code, without waiting for a deploy |
+
+Over plain HTTP on the LAN some browser features need a secure context (for
+example the clipboard used by Copy feedback); the shell falls back to showing the
+text to copy. Performance sign-off later (M5, M7) uses the local production build
+and the Netlify preview, never the dev server.
+
+**Demo hub** (packet P26).
+
+- Vite builds every demo page into `dist/`. Demos are `demos/<slug>.html` entries
+  backed by `src/demos/<slug>/`; a registry (`src/demos/registry.ts`) lists slug,
+  title, milestone, status and a one-line "what to check".
+- `/demos/` is the hub: one large tap target per demo, newest first, marked with
+  the milestone. Until the main menu exists the site root redirects there.
+- Every demo uses the shared demo shell, which provides:
+  - touch controls on touch devices, keyboard and mouse on desktop (§11);
+  - automatic low quality on phones (§12) and an FPS readout;
+  - a "What to check" card, three to five items, shown on load and reopenable;
+  - a version stamp showing the commit SHA, matching `/version.json`;
+  - a **Copy feedback** button that copies the demo name, commit, device, FPS
+    and any tuning values, ready to paste into a PR comment;
+  - a reset button and, where relevant, a touch-friendly tuning panel;
+  - a performance overlay toggled by `?perf=1` or a button: frame time graph,
+    FPS, draw calls, triangles, geometries and textures (from `renderer.info`),
+    JS heap where the browser exposes it, device pixel ratio and render scale.
+    Its numbers are included in Copy feedback.
+
+**Preview smoke check** (packet P28). A CI job waits for the PR's Netlify
+deploy preview to serve the head commit's `version.json`, then loads every demo
+in the registry with Playwright twice: emulating a phone (touch, landscape
+iPhone viewport) and on desktop. It fails on console errors, a failed load, or
+blank frames, and uploads screenshots as a workflow artifact. A `signoff:human`
+PR is not presented to the user until this job is green.
+
+**Sign-off PR format.** The first line of the PR description is
+`▶ Play on your phone: <deploy preview demo URL>`, followed by the "What to
+check" list and one line: "Merge to approve, or comment with changes." Keep the
+rest short; the user reads it on a phone.
+
+**Feedback loop.** The demo's worker session stays subscribed. A comment becomes
+either a fix on the same PR (small, local) or a new tuning packet (anything
+larger), so the demo PR does not grow without bound. After merge, the demo stays
+on the hub and on production at https://tinyut.netlify.app/demos/.
+
+**Demo packets by milestone.**
+
+| Milestone | Demo | What the user judges |
+|---|---|---|
+| M1 | Laundry walkabout | Movement feel, jump pads and routes, room scale |
+| M2 | Combat sandbox | Assault rifle, rockets, shock rifle against target dummies; view model, FX, sound, HUD |
+| M3 | Bot deathmatch | A full 1v3 match against bots from the menu |
+| M4 | Arsenal sandbox | Sniper, scoped shock, mines, translocator with disc cam, Redeemer with nose cam |
+| M5 | Laundry art tour | Realistic art, lighting and materials, plus frame rate on the phone |
+| M6 | Per map: layout demo, then art demo | Layout and routes in grey box first, art second |
+| M7 | Release candidate | The whole single-player game on production |
+| M8 | Two-phone match | Joining by room code and playing against each other |
