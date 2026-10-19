@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:," />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>FX (dev alias) · ut-tiny demos</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #101418;
+        overscroll-behavior: none;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        touch-action: none;
+      }
+      #flash {
+        position: fixed;
+        inset: 0;
+        background: #fff4dc;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #hud {
+        position: fixed;
+        bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+        left: calc(8px + env(safe-area-inset-left, 0px));
+        max-width: calc(100vw - 16px);
+        box-sizing: border-box;
+        border-radius: 4px;
+        color: #dde;
+        font: 12px/1.4 monospace;
+        background: rgb(0 0 0 / 50%);
+        padding: 6px 8px;
+        pointer-events: none;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Dev-server alias of demos/fx.html, kept for the screenshot recipe in
+      src/render/fx/README.md. Not part of the production build.
+    -->
+    <canvas id="scene"></canvas>
+    <div id="flash"></div>
+    <div id="hud"></div>
+    <script type="module" src="/src/demos/fx/main.ts"></script>
+  </body>
+</html>

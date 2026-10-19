@@ -33,6 +33,22 @@ export interface DemoEntry {
 
 export const DEMOS: readonly DemoEntry[] = [
   {
+    slug: 'fx',
+    title: 'Combat FX',
+    milestone: 'M2',
+    status: 'dev',
+    packet: 'P16',
+    updated: '2026-10-19',
+    whatToCheck: 'A looping scripted fight: tracers, beams, explosions, gibs, decals and flashes.',
+    checklist: [
+      'The script loops: assault burst, rocket, shock kill with gibs, rocket salvo, grenade, Redeemer.',
+      'Explosions light the room briefly and leave scorch decals on the surfaces they hit.',
+      'The shock beam lingers and keeps facing you as the camera moves.',
+      'The Redeemer blast flashes the whole screen and fades out.',
+      'Frame rate holds during the big explosions on a phone.',
+    ],
+  },
+  {
     slug: 'viewmodel',
     title: 'View model',
     milestone: 'M2',
