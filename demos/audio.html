@@ -2,12 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ut-tiny audio demo</title>
+    <link rel="icon" href="data:," />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Sound board · ut-tiny demos</title>
     <style>
       body {
         margin: 0;
-        padding: 16px;
+        padding: 64px max(16px, env(safe-area-inset-right, 0px)) 24px
+          max(16px, env(safe-area-inset-left, 0px));
         background: #101418;
         color: #dde;
         font:
@@ -23,17 +25,19 @@
         flex-wrap: wrap;
         gap: 4px;
       }
-      button {
+      button:not(.ds-btn) {
+        min-height: 36px;
         background: #223;
         color: #dde;
         border: 1px solid #446;
-        padding: 4px 8px;
+        padding: 6px 10px;
         border-radius: 3px;
+        touch-action: manipulation;
         cursor: pointer;
       }
       label {
         display: inline-block;
-        margin-right: 12px;
+        margin: 0 12px 6px 0;
       }
       #status {
         font-family: monospace;
@@ -41,7 +45,7 @@
     </style>
   </head>
   <body>
-    <div id="status">Click anywhere to start audio.</div>
+    <div id="status">Tap or click anywhere to start audio.</div>
     <h2>Where</h2>
     <label><input type="radio" name="where" value="local" checked /> local (non-positional)</label>
     <label><input type="radio" name="where" value="world" /> world at distance</label>
@@ -54,6 +58,6 @@
     <button id="announcer">Announcer lines</button>
     <h2>Sounds</h2>
     <div id="sounds"></div>
-    <script type="module" src="./demo.ts"></script>
+    <script type="module" src="/src/demos/audio/main.ts"></script>
   </body>
 </html>

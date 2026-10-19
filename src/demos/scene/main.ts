@@ -1,28 +1,48 @@
 /**
- * Dev-only demo for the scene view: `npm run dev`, then open
- * `/src/render/scene/demo.html`. Not part of the production build.
+ * Scene view demo, built as `/demos/scene.html` (dev: `npm run dev`, same path;
+ * `/src/render/scene/demo.html` is kept as a dev alias for scripts/smoke.ts
+ * and scripts/screenshot.ts).
  *
  * Query parameters: `camera=<name>` starts at a named map camera and freezes
  * the demo pawns (for screenshots), `markers=0` hides debug markers.
  * When the first frame has rendered, `document.body.dataset.ready` is `"1"`.
+ * With `camera=` the What-to-check card stays closed so screenshots are clean.
  */
 import { PCFShadowMap, WebGLRenderer } from 'three';
-import { PAWN_HEIGHT } from './entityViews';
-import { DebugCameraControls } from './debugCamera';
-import { LAUNDRY_SKETCH } from './fixtures/laundrySketch';
-import { SceneView } from './sceneView';
+import { PAWN_HEIGHT } from '../../render/scene/entityViews';
+import { DebugCameraControls } from '../../render/scene/debugCamera';
+import { LAUNDRY_SKETCH } from '../../render/scene/fixtures/laundrySketch';
+import { SceneView } from '../../render/scene/sceneView';
 import type { PawnState, WorldState } from '../../sim/types';
+import { createDemoShell } from '../shell';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 const hud = document.querySelector<HTMLDivElement>('#hud');
-if (!canvas || !hud) throw new Error('demo.html is missing #scene or #hud');
+if (!canvas || !hud) throw new Error('scene.html is missing #scene or #hud');
 
 const params = new URLSearchParams(location.search);
 const fixedCamera = params.get('camera');
 const map = LAUNDRY_SKETCH;
 
-const renderer = new WebGLRenderer({ canvas, antialias: true });
-renderer.shadowMap.enabled = true;
+let simTime = 0;
+const shell = createDemoShell({
+  slug: 'scene',
+  showCardOnLoad: !fixedCamera,
+  onReset: () => {
+    simTime = 0;
+    controls.pose = view.defaultPose();
+  },
+  tuning: () => ({
+    camera: Object.values(controls.pose.position)
+      .map((v) => v.toFixed(1))
+      .join(' '),
+    flySpeed: controls.settings.speed,
+    markers: view.mapView.markers.visible,
+  }),
+});
+
+const renderer = new WebGLRenderer({ canvas, antialias: shell.quality.antialias });
+renderer.shadowMap.enabled = shell.quality.shadows;
 renderer.shadowMap.type = PCFShadowMap;
 const view = new SceneView(map, { showMarkers: params.get('markers') !== '0' });
 
@@ -81,7 +101,7 @@ function stateAt(tick: number): WorldState {
 function resize(): void {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(shell.pixelRatio());
   renderer.setSize(w, h, false);
   view.resize(w, h);
 }
@@ -89,7 +109,6 @@ window.addEventListener('resize', resize);
 resize();
 
 let last = performance.now();
-let simTime = 0;
 let fps = 60;
 function frame(now: number): void {
   const dt = Math.min(0.1, (now - last) / 1000);
@@ -105,7 +124,9 @@ function frame(now: number): void {
   hud!.textContent =
     `${map.name}  ${fps.toFixed(0)} fps  draw calls ${renderer.info.render.calls}\n` +
     `pos ${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}  speed ${controls.settings.speed.toFixed(0)} m/s\n` +
-    'WASD/QE move, Shift fast, right-drag look, wheel speed, [ ] cameras, M markers';
+    (shell.touch
+      ? 'touch controls arrive with P27; the pawns keep moving'
+      : 'WASD/QE move, Shift fast, right-drag look, wheel speed, [ ] cameras, M markers');
   document.body.dataset.ready = '1';
   requestAnimationFrame(frame);
 }

@@ -1,6 +1,5 @@
 /**
- * Dev-only demo for the first-person view model: `npm run dev`, then open
- * `/src/render/viewmodel/demo.html`. Not part of the production build.
+ * First-person view model demo, built as `/demos/viewmodel.html`.
  *
  * Walks a fake local pawn around the Laundry Room (flat floor, no collision
  * beyond the room walls) so bob, sway, recoil, flashes and switches can be
@@ -15,24 +14,26 @@
  * test position (see `testPositions.ts`), `weapon=<id>` overrides its weapon,
  * `naive=1` uses the single-pass render, `t=<seconds>` sets how long the pawn
  * has been moving before the frame (default 1.3, minimum 0.2). When the first frame has
- * rendered, `document.body.dataset.ready` is `"1"`.
+ * rendered, `document.body.dataset.ready` is `"1"`. With `pos=` the
+ * What-to-check card stays closed so screenshots are clean.
  */
 import { PCFShadowMap, WebGLRenderer } from 'three';
 import { LAUNDRY_ROOM } from '../../maps/laundry-room';
-import { SceneView } from '../scene/sceneView';
-import { applyPoseToCamera } from '../scene/debugCamera';
+import { SceneView } from '../../render/scene/sceneView';
+import { applyPoseToCamera } from '../../render/scene/debugCamera';
 import { NO_ENTITY, WeaponIds, type SimEvent, type WeaponId } from '../../sim/types';
 import {
   VIEWMODEL_TEST_POSITIONS,
   testEyeHeight,
   type ViewModelTestPosition,
-} from './testPositions';
-import { DemoControls } from './demoControls';
-import { ViewModel, fovForAspect, type ViewModelPawn } from './viewModel';
+} from '../../render/viewmodel/testPositions';
+import { DemoControls } from '../../render/viewmodel/demoControls';
+import { ViewModel, fovForAspect, type ViewModelPawn } from '../../render/viewmodel/viewModel';
+import { createDemoShell } from '../shell';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 const hud = document.querySelector<HTMLDivElement>('#hud');
-if (!canvas || !hud) throw new Error('demo.html is missing #scene or #hud');
+if (!canvas || !hud) throw new Error('viewmodel.html is missing #scene or #hud');
 
 const params = new URLSearchParams(location.search);
 const frozenName = params.get('pos');
@@ -41,8 +42,25 @@ const weaponOverride = WeaponIds.find((w) => w === weaponParam);
 let naive = params.get('naive') === '1';
 let hidden = false;
 
-const renderer = new WebGLRenderer({ canvas, antialias: true });
-renderer.shadowMap.enabled = true;
+const shell = createDemoShell({
+  slug: 'viewmodel',
+  showCardOnLoad: !frozenName,
+  onReset: () => {
+    naive = false;
+    hidden = false;
+    pawn.grounded = true;
+    selectPosition(positionIndex);
+  },
+  tuning: () => ({
+    position: VIEWMODEL_TEST_POSITIONS[positionIndex]?.name ?? '?',
+    weapon: pawn.pendingWeapon ?? pawn.weapon ?? 'none',
+    render: naive ? 'naive single pass' : 'two-pass',
+    viewModelHidden: hidden,
+  }),
+});
+
+const renderer = new WebGLRenderer({ canvas, antialias: shell.quality.antialias });
+renderer.shadowMap.enabled = shell.quality.shadows;
 renderer.shadowMap.type = PCFShadowMap;
 const WORLD_FOV = 75;
 const world = new SceneView(LAUNDRY_ROOM, { showMarkers: false, fov: WORLD_FOV });
@@ -288,7 +306,7 @@ function stepSwitch(dt: number): void {
 function resize(): void {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(shell.pixelRatio());
   renderer.setSize(w, h, false);
   world.resize(w, h);
   // Keep the world's horizontal view on a phone held upright, like the view model does.

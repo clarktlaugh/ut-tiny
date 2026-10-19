@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:," />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <title>ut-tiny demos</title>
+    <style>
+      :root {
+        --ink: #e4e6ea;
+        --dim: #9aa1ab;
+        --ground: #101418;
+        --tile: #171b21;
+        --tile-hover: #1d222a;
+        --line: rgb(255 255 255 / 12%);
+        --accent: #d9a441;
+        --accent-ink: #17130a;
+        --ok: #6cc28a;
+        --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+        color-scheme: dark;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--ground);
+        color: var(--ink);
+        font:
+          15px/1.45 system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+      }
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: max(20px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+          max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+      }
+      .sub {
+        color: var(--dim);
+        margin: 4px 0 0;
+        font-size: 14px;
+      }
+      .stamp {
+        font: 12px var(--mono);
+        color: var(--dim);
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+      }
+      a.tile {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-height: 128px;
+        box-sizing: border-box;
+        padding: 16px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--tile);
+        color: inherit;
+        text-decoration: none;
+        touch-action: manipulation;
+      }
+      a.tile:hover {
+        background: var(--tile-hover);
+      }
+      a.tile:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-right: auto;
+      }
+      .badge {
+        font: 600 11px/1 var(--mono);
+        padding: 4px 6px;
+        border-radius: 4px;
+        background: rgb(255 255 255 / 9%);
+        color: var(--dim);
+      }
+      .badge.milestone {
+        background: var(--accent);
+        color: var(--accent-ink);
+      }
+      .badge.signoff {
+        color: var(--accent);
+      }
+      .badge.approved {
+        color: var(--ok);
+      }
+      .check {
+        color: var(--dim);
+        font-size: 14px;
+      }
+      .meta {
+        margin-top: auto;
+        font: 11px var(--mono);
+        color: var(--dim);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>ut-tiny demos</h1>
+          <p class="sub">Tap a demo to play it. Newest first.</p>
+        </div>
+        <span class="stamp" id="stamp"></span>
+      </header>
+      <ul id="demos"></ul>
+    </main>
+    <script type="module" src="/src/demos/hub/main.ts"></script>
+  </body>
+</html>
