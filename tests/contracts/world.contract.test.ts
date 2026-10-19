@@ -171,7 +171,10 @@ describe('World.step', () => {
     vi.spyOn(Math, 'random').mockImplementation(guard('Math.random', realRandom));
     for (let tick = 1; tick <= 600; tick++) world.step(scripted(pawns, tick));
     expect(offenders).toEqual([]);
-  });
+    // Every guarded call captures a stack trace, and Rapier calls performance.now
+    // thousands of times in 600 ticks, so this test runs close to the default 5 s
+    // limit on a shared CI runner.
+  }, 30_000);
 
   it('returns events in the order they occurred within the tick', async () => {
     const { world, pawns } = await fourPawnWorld();
