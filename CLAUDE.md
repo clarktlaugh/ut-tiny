@@ -20,9 +20,10 @@ Three.js, Rapier, Vitest), hosted on Netlify.
   merge conflict. GitHub skips CI on a conflicted PR.
 - Merge `origin/main` into your branch right before pushing.
 - When your PR merges, close its issue if it is still open (auto-merge does not).
-- **Sign-off means a playable demo on Netlify that works on a phone.** Dev-server
-  pages (`npm run dev`) do not exist on Netlify; only pages in the production
-  build do. Follow `docs/DESIGN.md` §18.8 and the Worker section of
+- **Sign-off means a playable demo on Netlify that works on a phone.** Every demo
+  must also run under `npm run dev` and `npm run preview`. Never add a page that
+  only exists on the dev server: Netlify only serves pages in the production
+  build. Follow `docs/DESIGN.md` §18.8 and the Worker section of
   `docs/AUTOMATION.md`.
 
 ## Where the plan is
@@ -41,7 +42,8 @@ Node is pinned in `.nvmrc` (22). `npm install` runs automatically via the Sessio
 
 | Command             | What it does                                                                      |
 | ------------------- | --------------------------------------------------------------------------------- |
-| `npm run dev`       | Vite dev server                                                                   |
+| `npm run dev`       | Vite dev server; demos at `/demos/` (`dev:lan` to open from a phone on Wi-Fi)     |
+| `npm run preview`   | Serve the production build; use for performance (`preview:lan` for a phone)       |
 | `npm run typecheck` | `tsc --noEmit`                                                                    |
 | `npm run lint`      | ESLint                                                                            |
 | `npm run format`    | Prettier (write); `format:check` verifies                                         |

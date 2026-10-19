@@ -76,7 +76,8 @@ packet/<n>-<slug> from the latest origin/main.
   PR has no merge conflict. Netlify's checks alone are not CI. If the jobs have
   not run, look for a merge conflict first.
 - **Sign-off packets (`signoff:human`)** follow `docs/DESIGN.md` §18.8:
-  - The demo is a built page on the hub, never a dev-server page.
+  - The demo is a page on the hub that works on the Netlify preview, under
+    `npm run dev`, and under `npm run preview`.
   - Before asking for sign-off, open the deploy preview demo URL yourself and
     confirm it serves your head commit in `/version.json` and plays on an
     emulated phone and on desktop. If `preview-smoke` exists it must be green.

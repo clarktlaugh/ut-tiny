@@ -622,7 +622,7 @@ Netlify is already linked to this repository and is the sole hosting target.
 
 - Build: `npm run build` (Vite) → publish `dist/`. Node version pinned in `.nvmrc` / `netlify.toml`.
 - Branch deploys and deploy previews are on, so every PR gets a playable URL for playtesting; `main` is production at https://tinyut.netlify.app.
-- **Every demo page is part of the production build** (Vite multi-page input), never a dev-server-only page. Demos live at `/demos/<slug>.html` and the hub at `/demos/` lists them all; until the game menu exists (P24), the site root redirects to the hub. Each build writes `/version.json` with the commit SHA (from Netlify's `COMMIT_REF`) so a reviewer and the preview smoke check can tell the preview is current. See §18.8.
+- **Every demo page is part of the production build** (Vite multi-page input), and the same pages also run under the local dev server (§18.8), so there is never a dev-only or Netlify-only demo. Demos live at `/demos/<slug>.html` and the hub at `/demos/` lists them all; until the game menu exists (P24), the site root redirects to the hub. Each build writes `/version.json` with the commit SHA (from Netlify's `COMMIT_REF`) so a reviewer and the preview smoke check can tell the preview is current. See §18.8.
 - `netlify.toml` sets: SPA redirect (`/* → /index.html 200`), `Cache-Control: immutable` for hashed assets under `/assets/`, correct `Content-Type` for `.wasm`, `.ktx2`, `.glb`, and `Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` headers only if we later adopt multithreaded WASM (not needed for Rapier or Recast single-threaded builds).
 - Large binary assets (baked lightmaps, GLTF) live in Git LFS; Netlify's build fetches LFS objects (enable in site settings) or, if LFS bandwidth becomes a problem, baked assets move to Netlify Blobs / Large Media and the build pulls them.
 - PlayroomKit later needs no server-side pieces, so Netlify static hosting still suffices for multiplayer. Netlify Functions are reserved for optional extras (leaderboards, match stats).
@@ -858,10 +858,24 @@ The user works from a phone. Everything they are asked to do must be doable ther
 ### 18.8 Playable demos for sign-off
 
 **Rule.** Anything the user is asked to sign off on is a playable demo on the PR's
-Netlify deploy preview that runs on a phone. Screenshots, videos, written
-descriptions and dev-server pages (`npm run dev`) are supporting material, never
-the review surface. A packet that cannot produce such a demo is not
-`signoff:human`; it is `signoff:auto` and gets judged in the next demo.
+Netlify deploy preview that runs on a phone. Screenshots, videos and written
+descriptions are supporting material. A packet that cannot produce such a demo
+is not `signoff:human`; it is `signoff:auto` and gets judged in the next demo.
+
+**Two ways to run every demo.** Each demo is one page that works in both places;
+neither is optional.
+
+| Where | How | Use it for |
+|---|---|---|
+| Netlify | Deploy preview per PR, production at https://tinyut.netlify.app/demos/ | Sign-off from a phone; sharing |
+| Local dev server | `npm run dev`, then `/demos/` | Fast iteration with hot reload; debugging |
+| Local production build | `npm run build && npm run preview`, then `/demos/` | Performance measurement: the dev server is unminified and unbundled, so its frame times are not representative |
+| Phone on the same Wi-Fi | `npm run dev:lan` or `npm run preview:lan`, then open the printed network URL | Real phone GPU and touch against local code, without waiting for a deploy |
+
+Over plain HTTP on the LAN some browser features need a secure context (for
+example the clipboard used by Copy feedback); the shell falls back to showing the
+text to copy. Performance sign-off later (M5, M7) uses the local production build
+and the Netlify preview, never the dev server.
 
 **Demo hub** (packet P26).
 
@@ -877,7 +891,11 @@ the review surface. A packet that cannot produce such a demo is not
   - a version stamp showing the commit SHA, matching `/version.json`;
   - a **Copy feedback** button that copies the demo name, commit, device, FPS
     and any tuning values, ready to paste into a PR comment;
-  - a reset button and, where relevant, a touch-friendly tuning panel.
+  - a reset button and, where relevant, a touch-friendly tuning panel;
+  - a performance overlay toggled by `?perf=1` or a button: frame time graph,
+    FPS, draw calls, triangles, geometries and textures (from `renderer.info`),
+    JS heap where the browser exposes it, device pixel ratio and render scale.
+    Its numbers are included in Copy feedback.
 
 **Preview smoke check** (packet P28). A CI job waits for the PR's Netlify
 deploy preview to serve the head commit's `version.json`, then loads every demo
