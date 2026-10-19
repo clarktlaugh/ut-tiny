@@ -1,16 +1,24 @@
-import { WebGLRenderer } from 'three';
+import { startPlayableDemo } from './app/demo/playableDemo';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game');
 if (!canvas) throw new Error('missing #game canvas');
 
-const renderer = new WebGLRenderer({ canvas, antialias: true });
-renderer.setClearColor(0x101418);
-
-function resize(): void {
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight, false);
-  renderer.clear();
+declare global {
+  interface Window {
+    /** The running demo, for the console and headless checks. */
+    __demo?: Awaited<ReturnType<typeof startPlayableDemo>>;
+  }
 }
 
-window.addEventListener('resize', resize);
-resize();
+startPlayableDemo({ canvas, root: document.body })
+  .then((demo) => {
+    window.__demo = demo;
+  })
+  .catch((err: unknown) => {
+    console.error(err);
+    const pre = document.createElement('pre');
+    pre.style.cssText =
+      'position:fixed;inset:16px;color:#f88;font:14px monospace;white-space:pre-wrap';
+    pre.textContent = `Failed to start: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`;
+    document.body.append(pre);
+  });
