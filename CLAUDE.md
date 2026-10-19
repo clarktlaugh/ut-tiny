@@ -13,12 +13,25 @@ Three.js, Rapier, Vitest), hosted on Netlify.
 2. **Read `docs/STATUS.md` first**: what is merged, in flight, broken, and next.
 3. Read the design sections the issue cites.
 
+## Rules learned the hard way
+
+- Netlify's checks are not CI. A PR is green only when the GitHub Actions jobs
+  `check` and `owned-paths` have run and passed on its head commit and it has no
+  merge conflict. GitHub skips CI on a conflicted PR.
+- Merge `origin/main` into your branch right before pushing.
+- When your PR merges, close its issue if it is still open (auto-merge does not).
+- **Sign-off means a playable demo on Netlify that works on a phone.** Dev-server
+  pages (`npm run dev`) do not exist on Netlify; only pages in the production
+  build do. Follow `docs/DESIGN.md` §18.8 and the Worker section of
+  `docs/AUTOMATION.md`.
+
 ## Where the plan is
 
 - `docs/DESIGN.md`: the full design (architecture §8, deployment §14, model routing §17,
   work breakdown §18).
 - `docs/BACKLOG.md`: the packet list (P1, P2, ...) with tiers, owned paths, acceptance.
 - `.github/ISSUE_TEMPLATE/work-packet.md`: the packet issue template.
+- `docs/AUTOMATION.md`: dispatcher, worker and digest procedures.
 
 Do not edit `DESIGN.md` or `BACKLOG.md` unless your packet says so.
 
