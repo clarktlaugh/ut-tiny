@@ -1,0 +1,38 @@
+name: Preview smoke
+
+# Proves every hub demo plays on the PR's Netlify deploy preview (docs/DESIGN.md §18.8).
+# Branch protection should later require `preview-smoke` alongside `check` and `owned-paths`.
+
+on:
+  pull_request:
+
+jobs:
+  preview-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+      - run: npm ci --prefix scripts
+      - run: npx --prefix scripts playwright-core install --with-deps chromium
+      - name: Self-test (a demo that throws on load must fail)
+        run: node scripts/preview-smoke.ts --self-test --out preview-smoke/self-test
+      - name: Smoke the deploy preview
+        run: >-
+          node scripts/preview-smoke.ts
+          --pr ${{ github.event.pull_request.number }}
+          --sha ${{ github.event.pull_request.head.sha }}
+          --wait 15
+          --out preview-smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-smoke-screenshots
+          path: preview-smoke
+          if-no-files-found: ignore
