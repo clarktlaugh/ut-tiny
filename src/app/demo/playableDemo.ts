@@ -12,7 +12,9 @@ import { AudioSystem, ThreeAudioBackend, resumeOnGesture } from '../../audio';
 import { PlayerController, attachPlayerInput } from '../../controllers/player';
 import { LAUNDRY_ROOM } from '../../maps/laundry-room';
 import { LoopbackTransport } from '../../net/loopback';
+import { WEAPONS } from '../../data/weapons';
 import { FxSystem, raycastProbe } from '../../render/fx';
+import { Hud, injectHudStyle, type HudNode } from '../../render/hud';
 import { SceneView } from '../../render/scene';
 import { ViewModel } from '../../render/viewmodel';
 import { LocalSession } from '../../session/localSession';
@@ -30,7 +32,7 @@ import { eyePosition } from '../../sim/weapons/core';
 import { SettingsStore } from '../settings';
 import { DemoWorld } from './demoWorld';
 import { DummyController } from './dummyController';
-import { Hud } from './hud';
+import { DemoOverlay } from './overlay';
 import { TOUCH_LOOK_RADIANS_PER_PX, TouchControls } from './touchControls';
 
 export interface PlayableDemoOptions {
@@ -120,13 +122,20 @@ export async function startPlayableDemo(options: PlayableDemoOptions): Promise<P
   settings.subscribe((s) => player.setSettings(s));
   const touch = new TouchControls(canvas, root);
   session.addController(new LocalController(player, touch));
-  const hud = new Hud(root, world, localPawn, touch.enabled);
+  injectHudStyle(document);
+  const hudRoot = document.createElement('div');
+  root.append(hudRoot);
+  const hud = new Hud(hudRoot as unknown as HudNode, document, { weapons: WEAPONS, localPawn });
+  const overlay = new DemoOverlay(root, world, localPawn);
+  if (touch.enabled) document.body.classList.add('touch-ui');
   const binding = attachPlayerInput(player.input, {
     element: canvas,
     document,
     window,
     onLockChange: (locked) => {
-      if (!locked && !touch.enabled) showStart('Paused', 'Click to keep playing.');
+      if (!locked && !touch.enabled && !overlay.overlayVisible) {
+        showStart('Paused', 'Click to keep playing.');
+      }
     },
   });
 
@@ -180,7 +189,8 @@ export async function startPlayableDemo(options: PlayableDemoOptions): Promise<P
     fx.handleEvents(events, state);
     viewModel.handleEvents(events, localPawn);
     audio.handleTick(events, state, localPawn);
-    hud.onEvents(events, state.time);
+    hud.handleEvents(events, state);
+    overlay.onEvents(events, state.time);
   });
 
   // Per frame: interpolate, place the camera at the eyes, draw.
@@ -217,13 +227,13 @@ export async function startPlayableDemo(options: PlayableDemoOptions): Promise<P
     }
 
     fx.update(dt, view.camera, curr);
-    hud.setFlash(fx.screenFlash.intensity);
+    overlay.setFlash(fx.screenFlash.intensity);
     viewModel.update(pawn, dt, pawn?.alive ?? false);
     renderer.render(view.scene, view.camera);
     viewModel.render(renderer);
 
-    const score = world.scoreFor('local');
-    hud.update(pawn, score?.frags ?? 0, score?.deaths ?? 0, curr.time);
+    hud.update(curr);
+    overlay.update(curr.time);
     document.body.dataset.ready = '1';
   });
 
@@ -237,11 +247,11 @@ export async function startPlayableDemo(options: PlayableDemoOptions): Promise<P
     '<a href="/src/render/viewmodel/demo.html">view model</a> · ' +
     '<a href="/src/audio/demo.html">audio</a></small>';
   function showStart(title: string, lead: string): void {
-    hud.showOverlay(title, `${lead}<br>${controlsHelp}${demoLinks}`);
+    overlay.showOverlay(title, `${lead}<br>${controlsHelp}${demoLinks}`);
     session.pause('menu');
   }
-  hud.onOverlayClick(() => {
-    hud.hideOverlay();
+  overlay.onOverlayClick(() => {
+    overlay.hideOverlay();
     session.resume('menu');
     if (!touch.enabled) binding.lock();
   });

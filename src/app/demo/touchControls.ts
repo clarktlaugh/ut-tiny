@@ -15,6 +15,11 @@ const STICK_RADIUS = 56;
 export const TOUCH_LOOK_RADIANS_PER_PX = 0.0045;
 
 const STYLE = /* css */ `
+/* Lift the HUD's bottom readouts clear of the buttons and the stick zone. */
+.touch-ui .hud-vitals { bottom: 150px; }
+.touch-ui .hud-ammo { bottom: 150px; right: 16px; }
+.touch-ui .hud-bar { bottom: 120px; }
+.touch-ui .hud-power { bottom: 220px; }
 .tc-stick { position: fixed; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%;
   border: 2px solid rgb(255 255 255 / 45%); background: rgb(0 0 0 / 20%); pointer-events: none; }
 .tc-knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; border-radius: 50%;
