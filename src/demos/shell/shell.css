@@ -195,16 +195,41 @@
   display: none;
 }
 
+.ds-on {
+  background: var(--ds-accent);
+  color: var(--ds-accent-ink);
+}
+
+.ds-on:hover {
+  background: #e6b457;
+}
+
 .ds-perf {
   position: fixed;
   z-index: 20;
   top: calc(64px + env(safe-area-inset-top, 0px));
   right: calc(8px + env(safe-area-inset-right, 0px));
-  margin: 0;
   padding: 6px 8px;
   border-radius: 6px;
   background: var(--ds-panel);
   color: var(--ds-ink);
-  font: 11px/1.4 var(--ds-mono);
   pointer-events: none;
+}
+
+.ds-perf[hidden] {
+  display: none;
+}
+
+.ds-perf-graph {
+  display: block;
+  width: 180px;
+  height: 44px;
+  background: rgb(0 0 0 / 35%);
+  border-radius: 3px;
+}
+
+.ds-perf-text {
+  margin: 6px 0 0;
+  font: 11px/1.4 var(--ds-mono);
+  white-space: pre;
 }

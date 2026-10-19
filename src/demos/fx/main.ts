@@ -45,8 +45,6 @@ const shell = createDemoShell({
   perfStats: () => {
     const s = fx.stats();
     return {
-      'draw calls': renderer.info.render.calls,
-      triangles: renderer.info.render.triangles,
       particles: s.light + s.matter,
       beams: s.beams,
     };
@@ -61,6 +59,7 @@ const shell = createDemoShell({
 
 const renderer = new WebGLRenderer({ canvas, antialias: shell.quality.antialias });
 renderer.shadowMap.enabled = shell.quality.shadows;
+shell.trackRenderer(renderer);
 renderer.shadowMap.type = PCFShadowMap;
 const view = new SceneView(map, { showMarkers: params.get('markers') === '1' });
 const fx = new FxSystem({

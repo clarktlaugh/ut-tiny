@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FpsMeter, formatFeedback } from './feedback';
-import { FrameStats } from './perf';
+import { FrameStats, perfNumbers } from './perf';
 import { QUALITY, chooseQuality, pixelRatioFor } from './quality';
 
 describe('chooseQuality', () => {
@@ -98,5 +98,58 @@ describe('FrameStats', () => {
     expect(s.fps).toBeGreaterThan(80);
     stats.reset();
     expect(stats.summary().frames).toBe(0);
+  });
+});
+
+describe('perfNumbers', () => {
+  const base = {
+    frames: { fps: 59.6, avgMs: 16.78, worstMs: 33.4, frames: 60 },
+    devicePixelRatio: 3,
+    pixelRatio: 1.5,
+    renderScale: 0.75,
+    quality: 'low',
+  };
+
+  it('lists frame times, DPR and render scale', () => {
+    const n = perfNumbers(base);
+    expect(n.fps).toBe('60');
+    expect(n['frame ms']).toBe('avg 16.8, worst 33.4');
+    expect(n.dpr).toBe('3');
+    expect(n['render scale']).toBe('0.75 (pixel ratio 1.50, low)');
+    expect(n['draw calls']).toBeUndefined();
+    expect(n['JS heap']).toBeUndefined();
+  });
+
+  it('adds renderer info, heap and extras when present', () => {
+    const n = perfNumbers({
+      ...base,
+      renderer: { render: { calls: 80, triangles: 4656 }, memory: { geometries: 12, textures: 3 } },
+      heapBytes: 25 * 1024 * 1024,
+      extra: { particles: 16 },
+    });
+    expect(n['draw calls']).toBe('80');
+    expect(n.triangles).toBe('4656');
+    expect(n.geometries).toBe('12');
+    expect(n.textures).toBe('3');
+    expect(n['JS heap']).toBe('25.0 MB');
+    expect(n.particles).toBe('16');
+  });
+
+  it('goes into the feedback text', () => {
+    const text = formatFeedback({
+      slug: 'scene',
+      title: 'Scene view',
+      commit: 'abc1234',
+      url: 'https://example.test/',
+      userAgent: 'UA',
+      viewport: { width: 1, height: 1 },
+      devicePixelRatio: 1,
+      touch: false,
+      quality: 'high',
+      fps: 60,
+      perf: perfNumbers(base),
+    });
+    expect(text).toContain('- Performance:');
+    expect(text).toContain('  - frame ms: avg 16.8, worst 33.4');
   });
 });

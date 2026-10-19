@@ -7,12 +7,22 @@
  * controls, P27) can mount.
  *
  * Query parameters handled here: `card=0` skips the card on load,
- * `quality=low|high` overrides the automatic quality, `perf=1` shows a
- * performance overlay (frame times, pixel ratio, demo stats such as draw calls).
+ * `quality=low|high` overrides the automatic quality, `perf=1` opens the
+ * performance overlay (also toggled by the Perf button): frame-time graph,
+ * FPS, draw calls, triangles, geometries and textures from the tracked
+ * renderer, JS heap where available, DPR and render scale. The same numbers go
+ * into Copy feedback.
  */
 import { findDemo, type DemoEntry } from '../registry';
 import { FpsMeter, formatFeedback } from './feedback';
-import { FrameStats } from './perf';
+import {
+  FrameStats,
+  drawFrameGraph,
+  perfNumbers,
+  usedHeapBytes,
+  type PerfSnapshot,
+  type RendererInfoLike,
+} from './perf';
 import { chooseQuality, pixelRatioFor, type Quality } from './quality';
 import './shell.css';
 
@@ -31,7 +41,7 @@ export interface DemoShellOptions {
   onReset?: () => void;
   /** Demo-specific values included in Copy feedback. */
   tuning?: () => Readonly<Record<string, unknown>>;
-  /** Extra lines for the `?perf=1` overlay, such as draw calls and triangles. */
+  /** Demo-specific extras for the performance overlay and feedback (particles, beams...). */
   perfStats?: () => Readonly<Record<string, string | number>>;
 }
 
@@ -45,6 +55,12 @@ export interface DemoShell {
   pixelRatio(): number;
   /** Smoothed frames per second of the page. */
   readonly fps: number;
+  /** Report `renderer.info` (draw calls, triangles, geometries, textures) in the perf numbers. */
+  trackRenderer(renderer: { readonly info: RendererInfoLike }): void;
+  /** Current performance numbers. */
+  perfSnapshot(): PerfSnapshot;
+  /** Show or hide the performance overlay (`?perf=1` starts it shown). */
+  setPerfVisible(visible: boolean): void;
   /** Full-screen layer above the demo for input overlays. */
   readonly overlayRoot: HTMLElement;
   setInputOverlay(overlay: InputOverlay | null): void;
@@ -127,12 +143,15 @@ export function createDemoShell(options: DemoShellOptions): DemoShell {
   copyBtn.type = 'button';
   const resetBtn = el('button', 'ds-btn', 'Reset');
   resetBtn.type = 'button';
+  const perfBtn = el('button', 'ds-btn', 'Perf');
+  perfBtn.type = 'button';
+  perfBtn.title = 'Performance overlay';
   const stamp = el('span', 'ds-stamp');
   const fpsText = el('span', 'ds-fps', '-- fps');
   const shaText = el('span', 'ds-sha', shortSha(commit));
   shaText.title = `commit ${commit}`;
   stamp.append(fpsText, shaText);
-  bar.append(back, helpBtn, copyBtn, resetBtn, stamp);
+  bar.append(back, helpBtn, copyBtn, resetBtn, perfBtn, stamp);
 
   // --- What-to-check card -----------------------------------------------------
   const backdrop = el('div', 'ds-backdrop');
@@ -187,6 +206,50 @@ export function createDemoShell(options: DemoShellOptions): DemoShell {
     if (lastFocus instanceof HTMLElement) lastFocus.focus({ preventScroll: true });
   }
 
+  // --- Performance overlay ---------------------------------------------------
+  const frames = new FrameStats();
+  let lastText = 0;
+  let rendererInfo: RendererInfoLike | undefined;
+  const perfPanel = el('div', 'ds-perf');
+  perfPanel.hidden = true;
+  const graph = el('canvas', 'ds-perf-graph');
+  const GRAPH_W = 180;
+  const GRAPH_H = 44;
+  graph.width = GRAPH_W * 2;
+  graph.height = GRAPH_H * 2;
+  const graphCtx = graph.getContext('2d');
+  graphCtx?.scale(2, 2);
+  const perfText = el('pre', 'ds-perf-text');
+  perfPanel.append(graph, perfText);
+  document.body.append(perfPanel);
+
+  function snapshot(): PerfSnapshot {
+    return {
+      frames: frames.summary(),
+      devicePixelRatio: window.devicePixelRatio,
+      pixelRatio: pixelRatioFor(quality, window.devicePixelRatio),
+      renderScale: quality.renderScale,
+      quality: quality.level,
+      renderer: rendererInfo,
+      heapBytes: usedHeapBytes(performance),
+      extra: options.perfStats?.(),
+    };
+  }
+  function renderPerf(): void {
+    if (graphCtx) drawFrameGraph(graphCtx, GRAPH_W, GRAPH_H, frames.recent());
+    perfText.textContent = Object.entries(perfNumbers(snapshot()))
+      .map(([key, value]) => `${key}  ${value}`)
+      .join('\n');
+  }
+  function setPerfVisible(visible: boolean): void {
+    perfPanel.hidden = !visible;
+    perfBtn.classList.toggle('ds-on', visible);
+    perfBtn.setAttribute('aria-pressed', String(visible));
+    // Refresh on the next frame, not now: during createDemoShell the demo's own
+    // objects (read by perfStats) do not exist yet.
+    lastText = 0;
+  }
+
   const shell: DemoShell = {
     demo,
     commit,
@@ -196,6 +259,11 @@ export function createDemoShell(options: DemoShellOptions): DemoShell {
     get fps() {
       return meter.fps;
     },
+    trackRenderer(renderer) {
+      rendererInfo = renderer.info;
+    },
+    perfSnapshot: snapshot,
+    setPerfVisible,
     overlayRoot,
     setInputOverlay(next) {
       overlay?.unmount();
@@ -217,6 +285,7 @@ export function createDemoShell(options: DemoShellOptions): DemoShell {
         quality: quality.level,
         fps: meter.fps,
         tuning: options.tuning?.(),
+        perf: perfNumbers(snapshot()),
       }),
     async copyFeedback() {
       const text = shell.feedbackText();
@@ -245,6 +314,7 @@ export function createDemoShell(options: DemoShellOptions): DemoShell {
     if (e.key === 'Escape' && !backdrop.hidden) closeCard();
   });
   copyBtn.addEventListener('click', () => void shell.copyFeedback());
+  perfBtn.addEventListener('click', () => setPerfVisible(perfPanel.hidden !== false));
   resetBtn.addEventListener('click', () => {
     if (options.onReset) {
       options.onReset();
@@ -254,35 +324,17 @@ export function createDemoShell(options: DemoShellOptions): DemoShell {
     }
   });
   // Keep shell clicks away from demo handlers (pointer lock, look drags).
-  for (const node of [bar, backdrop]) {
+  for (const node of [bar, backdrop, perfPanel]) {
     node.addEventListener('pointerdown', (e) => e.stopPropagation());
     node.addEventListener('mousedown', (e) => e.stopPropagation());
   }
 
-  // --- Performance overlay (?perf=1) -----------------------------------------
-  const perf = params.get('perf') === '1' ? new FrameStats() : null;
-  const perfPanel = el('pre', 'ds-perf');
-  if (perf) document.body.append(perfPanel);
-  function perfText(): string {
-    const f = perf!.summary();
-    const lines = [
-      `${f.fps.toFixed(0)} fps  avg ${f.avgMs.toFixed(1)} ms  worst ${f.worstMs.toFixed(1)} ms`,
-      `quality ${quality.level}  dpr ${window.devicePixelRatio}  render ${shell.pixelRatio().toFixed(2)}`,
-      `viewport ${window.innerWidth}×${window.innerHeight}`,
-    ];
-    for (const [key, value] of Object.entries(options.perfStats?.() ?? {})) {
-      lines.push(`${key} ${value}`);
-    }
-    return lines.join('\n');
-  }
-
-  let lastText = 0;
   const tick = (now: number): void => {
     meter.sample(now);
-    perf?.sample(now);
+    frames.sample(now);
     if (now - lastText > 250) {
       fpsText.textContent = `${Math.round(meter.fps)} fps`;
-      if (perf) perfPanel.textContent = perfText();
+      if (!perfPanel.hidden) renderPerf();
       lastText = now;
     }
     requestAnimationFrame(tick);
@@ -290,9 +342,10 @@ export function createDemoShell(options: DemoShellOptions): DemoShell {
   requestAnimationFrame(tick);
   document.addEventListener('visibilitychange', () => {
     meter.reset();
-    perf?.reset();
+    frames.reset();
   });
 
+  if (params.get('perf') === '1') setPerfVisible(true);
   if ((options.showCardOnLoad ?? true) && params.get('card') !== '0') openCard();
   return shell;
 }

@@ -32,10 +32,6 @@ const shell = createDemoShell({
     simTime = 0;
     controls.pose = view.defaultPose();
   },
-  perfStats: () => ({
-    'draw calls': renderer.info.render.calls,
-    triangles: renderer.info.render.triangles,
-  }),
   tuning: () => ({
     camera: Object.values(controls.pose.position)
       .map((v) => v.toFixed(1))
@@ -47,6 +43,7 @@ const shell = createDemoShell({
 
 const renderer = new WebGLRenderer({ canvas, antialias: shell.quality.antialias });
 renderer.shadowMap.enabled = shell.quality.shadows;
+shell.trackRenderer(renderer);
 renderer.shadowMap.type = PCFShadowMap;
 const view = new SceneView(map, { showMarkers: params.get('markers') !== '0' });
 

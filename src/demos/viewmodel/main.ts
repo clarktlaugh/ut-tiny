@@ -51,10 +51,6 @@ const shell = createDemoShell({
     pawn.grounded = true;
     selectPosition(positionIndex);
   },
-  perfStats: () => ({
-    'draw calls': renderer.info.render.calls,
-    triangles: renderer.info.render.triangles,
-  }),
   tuning: () => ({
     position: VIEWMODEL_TEST_POSITIONS[positionIndex]?.name ?? '?',
     weapon: pawn.pendingWeapon ?? pawn.weapon ?? 'none',
@@ -65,6 +61,9 @@ const shell = createDemoShell({
 
 const renderer = new WebGLRenderer({ canvas, antialias: shell.quality.antialias });
 renderer.shadowMap.enabled = shell.quality.shadows;
+// Two render passes per frame: count both in renderer.info.
+renderer.info.autoReset = false;
+shell.trackRenderer(renderer);
 renderer.shadowMap.type = PCFShadowMap;
 const WORLD_FOV = 75;
 const world = new SceneView(LAUNDRY_ROOM, { showMarkers: false, fov: WORLD_FOV });
@@ -348,6 +347,7 @@ function renderNaive(): void {
 }
 
 function draw(): void {
+  renderer.info.reset();
   world.sync(null, emptyState, 1);
   placeCamera();
   renderer.render(world.scene, world.camera);

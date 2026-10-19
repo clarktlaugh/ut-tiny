@@ -13,6 +13,8 @@ export interface FeedbackInfo {
   readonly fps: number;
   /** Demo-specific values (tuning sliders, toggles); omitted when empty. */
   readonly tuning?: Readonly<Record<string, unknown>>;
+  /** Performance numbers (see `perfNumbers`); omitted when empty. */
+  readonly perf?: Readonly<Record<string, string>>;
 }
 
 function formatValue(value: unknown): string {
@@ -36,7 +38,12 @@ export function formatFeedback(info: FeedbackInfo): string {
     lines.push('- Tuning:');
     for (const [key, value] of tuning) lines.push(`  - ${key}: ${formatValue(value)}`);
   }
-  lines.push('', 'Notes: ');
+  const perf = Object.entries(info.perf ?? {});
+  if (perf.length) {
+    lines.push('- Performance:');
+    for (const [key, value] of perf) lines.push(`  - ${key}: ${value}`);
+  }
+  lines.push('', 'Notes:');
   return lines.join('\n');
 }
 
