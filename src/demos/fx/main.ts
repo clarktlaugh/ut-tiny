@@ -1,6 +1,6 @@
 /**
- * Dev-only FX demo: `npm run dev`, then open `/src/render/fx/demo.html`.
- * Not part of the production build.
+ * FX demo, built as `/demos/fx.html`. `/src/render/fx/demo.html`
+ * is a dev-server alias of the same module (the FX README points at it).
  *
  * Scripted combat from `timeline.ts` plays on the laundry sketch: an assault
  * rifle burst, a rocket, a shock kill with gibs, a three-rocket salvo, a
@@ -10,27 +10,55 @@
  * (for screenshots), `camera=<name>` starts at a named camera (the sketch's
  * or `fx-*` from the timeline), `markers=1` shows the map debug markers.
  * When the first frame has rendered, `document.body.dataset.ready` is `"1"`.
+ * With `tick=` the What-to-check card stays closed so screenshots are clean.
  */
 import { PCFShadowMap, WebGLRenderer } from 'three';
 import { TICK_DT } from '../../sim/types';
-import { DebugCameraControls } from '../scene/debugCamera';
-import { LAUNDRY_SKETCH } from '../scene/fixtures/laundrySketch';
-import { SceneView } from '../scene/sceneView';
-import { FxSystem } from './fxSystem';
-import { raycastProbe } from './surface';
-import { FX_CAMERAS, LOOP_TICKS, eventsAt, stateAt } from './timeline';
+import { DebugCameraControls } from '../../render/scene/debugCamera';
+import { LAUNDRY_SKETCH } from '../../render/scene/fixtures/laundrySketch';
+import { SceneView } from '../../render/scene/sceneView';
+import { FxSystem } from '../../render/fx/fxSystem';
+import { raycastProbe } from '../../render/fx/surface';
+import { FX_CAMERAS, LOOP_TICKS, eventsAt, stateAt } from '../../render/fx/timeline';
+import { createDemoShell } from '../shell';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 const hud = document.querySelector<HTMLDivElement>('#hud');
 const flashEl = document.querySelector<HTMLDivElement>('#flash');
-if (!canvas || !hud || !flashEl) throw new Error('demo.html is missing #scene, #hud or #flash');
+if (!canvas || !hud || !flashEl) throw new Error('fx.html is missing #scene, #hud or #flash');
 
 const params = new URLSearchParams(location.search);
 const frozenTick = params.has('tick') ? Math.max(0, Number(params.get('tick'))) : null;
 const map = { ...LAUNDRY_SKETCH, cameras: [...LAUNDRY_SKETCH.cameras, ...FX_CAMERAS] };
 
-const renderer = new WebGLRenderer({ canvas, antialias: true });
-renderer.shadowMap.enabled = true;
+const shell = createDemoShell({
+  slug: 'fx',
+  showCardOnLoad: frozenTick === null,
+  onReset: () => {
+    tick = -1;
+    prev = stateAt(0);
+    curr = prev;
+    simTime = 0;
+    controls.pose = view.defaultPose();
+  },
+  perfStats: () => {
+    const s = fx.stats();
+    return {
+      particles: s.light + s.matter,
+      beams: s.beams,
+    };
+  },
+  tuning: () => ({
+    tick,
+    camera: Object.values(controls.pose.position)
+      .map((v) => v.toFixed(1))
+      .join(' '),
+  }),
+});
+
+const renderer = new WebGLRenderer({ canvas, antialias: shell.quality.antialias });
+renderer.shadowMap.enabled = shell.quality.shadows;
+shell.trackRenderer(renderer);
 renderer.shadowMap.type = PCFShadowMap;
 const view = new SceneView(map, { showMarkers: params.get('markers') === '1' });
 const fx = new FxSystem({
@@ -72,7 +100,7 @@ function stepTo(target: number): void {
 function resize(): void {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(shell.pixelRatio());
   renderer.setSize(w, h, false);
   view.resize(w, h);
 }
@@ -109,7 +137,9 @@ function frame(now: number): void {
     `particles ${s.light + s.matter}  beams ${s.beams}  lights ${s.flashes}  ` +
     `decals ${s.decals}  gibs ${s.gibs}  recycled ${s.recycled}\n` +
     `pos ${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}  ` +
-    'WASD/QE move, Shift fast, right-drag look, [ ] cameras, M markers';
+    (shell.touch
+      ? 'touch controls arrive with P27; the script loops'
+      : 'WASD/QE move, Shift fast, right-drag look, [ ] cameras, M markers');
   document.body.dataset.ready = '1';
   requestAnimationFrame(frame);
 }

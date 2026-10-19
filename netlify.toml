@@ -5,6 +5,16 @@
 [build.environment]
   NODE_VERSION = "22"
 
+# Until the game menu exists (P24), the site root goes to the demo hub.
+# Forced, because a file (index.html) exists at "/".
+[[redirects]]
+  from = "/"
+  to = "/demos/"
+  status = 302
+  force = true
+
+# SPA fallback for unknown paths. Not forced, so real pages (the hub, every
+# demos/<slug>.html, version.json) are served as files.
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -29,3 +39,8 @@
   for = "/*.glb"
   [headers.values]
     Content-Type = "model/gltf-binary"
+
+[[headers]]
+  for = "/version.json"
+  [headers.values]
+    Cache-Control = "no-cache"

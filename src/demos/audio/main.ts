@@ -1,18 +1,18 @@
 /**
- * Dev-only sound board for the audio module: `npm run dev`, then open
- * `/src/audio/demo.html`. Not part of the production build.
+ * Sound board for the audio module, built as `/demos/audio.html`.
  *
  * Plays every catalog sound on the local bus or positionally around the
  * listener (which sits at the origin facing -Z), and runs a short scripted
  * stream of `SimEvent`s through `AudioSystem.handleTick` the way a session does.
  */
-import type { VolumeSettings } from '../app/settings';
-import type { AnnouncerLine, SimEvent, Vec3 } from '../sim/types';
-import { NO_ENTITY } from '../sim/types';
-import { AudioSystem } from './audioSystem';
-import { resumeOnGesture } from './resume';
-import { announcerSoundId, SOUND_IDS, type SoundId } from './sounds';
-import { ThreeAudioBackend } from './threeBackend';
+import type { VolumeSettings } from '../../app/settings';
+import type { AnnouncerLine, SimEvent, Vec3 } from '../../sim/types';
+import { NO_ENTITY } from '../../sim/types';
+import { AudioSystem } from '../../audio/audioSystem';
+import { resumeOnGesture } from '../../audio/resume';
+import { announcerSoundId, SOUND_IDS, type SoundId } from '../../audio/sounds';
+import { ThreeAudioBackend } from '../../audio/threeBackend';
+import { createDemoShell } from '../shell';
 
 const statusEl = document.querySelector<HTMLDivElement>('#status')!;
 const soundsEl = document.querySelector<HTMLDivElement>('#sounds')!;
@@ -20,10 +20,21 @@ const volumeEl = document.querySelector<HTMLDivElement>('#volume')!;
 const distanceEl = document.querySelector<HTMLInputElement>('#distance')!;
 const angleEl = document.querySelector<HTMLInputElement>('#angle')!;
 
+const DEFAULT_VOLUME: VolumeSettings = { master: 0.8, sfx: 1, music: 0.5, announcer: 1 };
 const backend = new ThreeAudioBackend();
-const volume: VolumeSettings = { master: 0.8, sfx: 1, music: 0.5, announcer: 1 };
+const volume: VolumeSettings = { ...DEFAULT_VOLUME };
 const audio = new AudioSystem(backend, { volume });
 audio.preload();
+
+createDemoShell({
+  slug: 'audio',
+  tuning: () => ({
+    where: where().bus,
+    distance: Number(distanceEl.value),
+    angle: Number(angleEl.value),
+    ...volume,
+  }),
+});
 
 resumeOnGesture(window, backend.listener.context, () => {
   statusEl.textContent = `Audio running at ${backend.sampleRate} Hz.`;
@@ -178,3 +189,5 @@ document.querySelector<HTMLButtonElement>('#firefight')!.onclick = () => {
     if (tick >= 240) clearInterval(timer);
   }, 1000 / 60);
 };
+
+document.body.dataset.ready = '1';
