@@ -11,7 +11,7 @@ labels: ["packet", "ready"]
 
 ## Owned paths
 
-<!-- Directories/files this packet may change. CI fails the PR if it touches others (docs/STATUS.md is always allowed). -->
+<!-- Directories/files this packet may change. CI fails the PR if it touches others (docs/STATUS.md is always allowed). The check matches exact file paths and directory prefixes ending in `/` only: no wildcards, no notes after a path. -->
 
 -
 
