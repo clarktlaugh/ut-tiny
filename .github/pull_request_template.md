@@ -1,3 +1,8 @@
+<!-- signoff:human (demo) packets: make the FIRST line
+▶ Play on your phone: https://deploy-preview-<PR>--tinyut.netlify.app/demos/<slug>.html
+then the What-to-check list, then: Merge to approve, or comment with changes.
+See docs/DESIGN.md §18.8. Delete this comment for signoff:auto packets. -->
+
 Closes #<!-- issue number -->
 
 ## Packet
@@ -14,6 +19,6 @@ Closes #<!-- issue number -->
 - [ ] Only files under the issue's owned paths (plus `docs/STATUS.md`) changed
 - [ ] My line in `docs/STATUS.md` is updated
 
-## Deploy preview
+## Demo
 
-<!-- signoff:human packets: paste the Netlify deploy preview link here -->
+<!-- Hub demo(s) this PR adds or changes, as deploy preview links. signoff:human: confirm /version.json on the preview shows the head commit and the demo plays on an emulated phone and on desktop (and preview-smoke is green once it exists). -->

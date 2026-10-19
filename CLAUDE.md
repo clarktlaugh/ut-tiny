@@ -13,12 +13,26 @@ Three.js, Rapier, Vitest), hosted on Netlify.
 2. **Read `docs/STATUS.md` first**: what is merged, in flight, broken, and next.
 3. Read the design sections the issue cites.
 
+## Rules learned the hard way
+
+- Netlify's checks are not CI. A PR is green only when the GitHub Actions jobs
+  `check` and `owned-paths` have run and passed on its head commit and it has no
+  merge conflict. GitHub skips CI on a conflicted PR.
+- Merge `origin/main` into your branch right before pushing.
+- When your PR merges, close its issue if it is still open (auto-merge does not).
+- **Sign-off means a playable demo on Netlify that works on a phone.** Every demo
+  must also run under `npm run dev` and `npm run preview`. Never add a page that
+  only exists on the dev server: Netlify only serves pages in the production
+  build. Follow `docs/DESIGN.md` §18.8 and the Worker section of
+  `docs/AUTOMATION.md`.
+
 ## Where the plan is
 
 - `docs/DESIGN.md`: the full design (architecture §8, deployment §14, model routing §17,
   work breakdown §18).
 - `docs/BACKLOG.md`: the packet list (P1, P2, ...) with tiers, owned paths, acceptance.
 - `.github/ISSUE_TEMPLATE/work-packet.md`: the packet issue template.
+- `docs/AUTOMATION.md`: dispatcher, worker and digest procedures.
 
 Do not edit `DESIGN.md` or `BACKLOG.md` unless your packet says so.
 
@@ -28,7 +42,8 @@ Node is pinned in `.nvmrc` (22). `npm install` runs automatically via the Sessio
 
 | Command             | What it does                                                                      |
 | ------------------- | --------------------------------------------------------------------------------- |
-| `npm run dev`       | Vite dev server                                                                   |
+| `npm run dev`       | Vite dev server; demos at `/demos/` (`dev:lan` to open from a phone on Wi-Fi)     |
+| `npm run preview`   | Serve the production build; use for performance (`preview:lan` for a phone)       |
 | `npm run typecheck` | `tsc --noEmit`                                                                    |
 | `npm run lint`      | ESLint                                                                            |
 | `npm run format`    | Prettier (write); `format:check` verifies                                         |
