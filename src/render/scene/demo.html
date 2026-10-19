@@ -2,12 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="data:," />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover"
-    />
-    <title>Scene view (dev alias) · ut-tiny demos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ut-tiny scene view demo</title>
     <style>
       html,
       body {
@@ -15,41 +11,28 @@
         height: 100%;
         overflow: hidden;
         background: #101418;
-        overscroll-behavior: none;
       }
       canvas {
         display: block;
         width: 100vw;
         height: 100vh;
-        touch-action: none;
       }
       #hud {
         position: fixed;
-        top: calc(8px + env(safe-area-inset-top, 0px));
-        left: calc(8px + env(safe-area-inset-left, 0px));
-        max-width: calc(100vw - 16px);
-        box-sizing: border-box;
+        top: 8px;
+        left: 8px;
         color: #dde;
         font: 12px/1.4 monospace;
         background: rgb(0 0 0 / 50%);
         padding: 6px 8px;
-        border-radius: 4px;
         pointer-events: none;
-        white-space: pre-wrap;
-      }
-      .demo-shell #hud {
-        top: auto;
-        bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+        white-space: pre;
       }
     </style>
   </head>
   <body>
-    <!--
-      Dev-server alias of demos/scene.html, kept because scripts/smoke.ts and
-      scripts/screenshot.ts load this path. Not part of the production build.
-    -->
     <canvas id="scene"></canvas>
     <div id="hud"></div>
-    <script type="module" src="/src/demos/scene/main.ts"></script>
+    <script type="module" src="./demo.ts"></script>
   </body>
 </html>

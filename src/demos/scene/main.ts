@@ -1,7 +1,7 @@
 /**
- * Scene view demo, built as `/demos/scene.html` (dev: `npm run dev`, same path;
- * `/src/render/scene/demo.html` is kept as a dev alias for scripts/smoke.ts
- * and scripts/screenshot.ts).
+ * Scene view demo, built as `/demos/scene.html`. The original dev page
+ * `/src/render/scene/demo.html` still exists unchanged (scripts/smoke.ts and scripts/screenshot.ts load it);
+ * delete it once those point at `/demos/scene.html`.
  *
  * Query parameters: `camera=<name>` starts at a named map camera and freezes
  * the demo pawns (for screenshots), `markers=0` hides debug markers.

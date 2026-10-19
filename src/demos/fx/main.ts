@@ -1,6 +1,7 @@
 /**
- * FX demo, built as `/demos/fx.html` (`/src/render/fx/demo.html` is kept as a
- * dev-server alias for the README's screenshot recipe).
+ * FX demo, built as `/demos/fx.html`. The original dev page
+ * `/src/render/fx/demo.html` still exists unchanged (the FX README points at it);
+ * delete it once those point at `/demos/fx.html`.
  *
  * Scripted combat from `timeline.ts` plays on the laundry sketch: an assault
  * rifle burst, a rocket, a shock kill with gibs, a three-rocket salvo, a
