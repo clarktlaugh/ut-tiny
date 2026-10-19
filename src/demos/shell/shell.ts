@@ -70,7 +70,7 @@ export interface DemoShell {
   copyFeedback(): Promise<boolean>;
 }
 
-const HUB_URL = './';
+const HUB_URL = '/demos/';
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,

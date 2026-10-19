@@ -1,7 +1,6 @@
 /**
- * Scene view demo, built as `/demos/scene.html`. The original dev page
- * `/src/render/scene/demo.html` still exists unchanged (scripts/smoke.ts and scripts/screenshot.ts load it);
- * delete it once those point at `/demos/scene.html`.
+ * Scene view demo, built as `/demos/scene.html`. `/src/render/scene/demo.html`
+ * is a dev-server alias of the same module (scripts/smoke.ts and scripts/screenshot.ts load it).
  *
  * Query parameters: `camera=<name>` starts at a named map camera and freezes
  * the demo pawns (for screenshots), `markers=0` hides debug markers.
