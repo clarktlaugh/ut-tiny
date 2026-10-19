@@ -194,3 +194,17 @@
 .ds-toast[hidden] {
   display: none;
 }
+
+.ds-perf {
+  position: fixed;
+  z-index: 20;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  right: calc(8px + env(safe-area-inset-right, 0px));
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--ds-panel);
+  color: var(--ds-ink);
+  font: 11px/1.4 var(--ds-mono);
+  pointer-events: none;
+}

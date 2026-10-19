@@ -51,6 +51,10 @@ const shell = createDemoShell({
     pawn.grounded = true;
     selectPosition(positionIndex);
   },
+  perfStats: () => ({
+    'draw calls': renderer.info.render.calls,
+    triangles: renderer.info.render.triangles,
+  }),
   tuning: () => ({
     position: VIEWMODEL_TEST_POSITIONS[positionIndex]?.name ?? '?',
     weapon: pawn.pendingWeapon ?? pawn.weapon ?? 'none',

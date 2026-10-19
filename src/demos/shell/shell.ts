@@ -7,10 +7,12 @@
  * controls, P27) can mount.
  *
  * Query parameters handled here: `card=0` skips the card on load,
- * `quality=low|high` overrides the automatic quality.
+ * `quality=low|high` overrides the automatic quality, `perf=1` shows a
+ * performance overlay (frame times, pixel ratio, demo stats such as draw calls).
  */
 import { findDemo, type DemoEntry } from '../registry';
 import { FpsMeter, formatFeedback } from './feedback';
+import { FrameStats } from './perf';
 import { chooseQuality, pixelRatioFor, type Quality } from './quality';
 import './shell.css';
 
@@ -29,6 +31,8 @@ export interface DemoShellOptions {
   onReset?: () => void;
   /** Demo-specific values included in Copy feedback. */
   tuning?: () => Readonly<Record<string, unknown>>;
+  /** Extra lines for the `?perf=1` overlay, such as draw calls and triangles. */
+  perfStats?: () => Readonly<Record<string, string | number>>;
 }
 
 export interface DemoShell {
@@ -255,17 +259,39 @@ export function createDemoShell(options: DemoShellOptions): DemoShell {
     node.addEventListener('mousedown', (e) => e.stopPropagation());
   }
 
+  // --- Performance overlay (?perf=1) -----------------------------------------
+  const perf = params.get('perf') === '1' ? new FrameStats() : null;
+  const perfPanel = el('pre', 'ds-perf');
+  if (perf) document.body.append(perfPanel);
+  function perfText(): string {
+    const f = perf!.summary();
+    const lines = [
+      `${f.fps.toFixed(0)} fps  avg ${f.avgMs.toFixed(1)} ms  worst ${f.worstMs.toFixed(1)} ms`,
+      `quality ${quality.level}  dpr ${window.devicePixelRatio}  render ${shell.pixelRatio().toFixed(2)}`,
+      `viewport ${window.innerWidth}×${window.innerHeight}`,
+    ];
+    for (const [key, value] of Object.entries(options.perfStats?.() ?? {})) {
+      lines.push(`${key} ${value}`);
+    }
+    return lines.join('\n');
+  }
+
   let lastText = 0;
   const tick = (now: number): void => {
     meter.sample(now);
+    perf?.sample(now);
     if (now - lastText > 250) {
       fpsText.textContent = `${Math.round(meter.fps)} fps`;
+      if (perf) perfPanel.textContent = perfText();
       lastText = now;
     }
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
-  document.addEventListener('visibilitychange', () => meter.reset());
+  document.addEventListener('visibilitychange', () => {
+    meter.reset();
+    perf?.reset();
+  });
 
   if ((options.showCardOnLoad ?? true) && params.get('card') !== '0') openCard();
   return shell;

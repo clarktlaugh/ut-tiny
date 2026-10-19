@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FpsMeter, formatFeedback } from './feedback';
+import { FrameStats } from './perf';
 import { QUALITY, chooseQuality, pixelRatioFor } from './quality';
 
 describe('chooseQuality', () => {
@@ -82,5 +83,20 @@ describe('FpsMeter', () => {
     meter.reset();
     meter.sample(t + 60_000);
     expect(meter.fps).toBeCloseTo(30, 0);
+  });
+});
+
+describe('FrameStats', () => {
+  it('summarises the last window of frames', () => {
+    const stats = new FrameStats(1000);
+    let t = 0;
+    stats.sample(t);
+    for (let i = 0; i < 120; i++) stats.sample((t += i === 100 ? 50 : 10));
+    const s = stats.summary();
+    expect(s.worstMs).toBe(50);
+    expect(s.frames).toBeLessThanOrEqual(101);
+    expect(s.fps).toBeGreaterThan(80);
+    stats.reset();
+    expect(stats.summary().frames).toBe(0);
   });
 });

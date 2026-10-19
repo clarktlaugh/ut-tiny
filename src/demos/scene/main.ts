@@ -32,6 +32,10 @@ const shell = createDemoShell({
     simTime = 0;
     controls.pose = view.defaultPose();
   },
+  perfStats: () => ({
+    'draw calls': renderer.info.render.calls,
+    triangles: renderer.info.render.triangles,
+  }),
   tuning: () => ({
     camera: Object.values(controls.pose.position)
       .map((v) => v.toFixed(1))
