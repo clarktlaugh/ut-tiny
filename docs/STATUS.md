@@ -33,9 +33,11 @@ Always current. Every PR updates its own line. Last updated by P19.
 
 ## Known issues
 
-- None.
+- Demo pages under `src/**/demo.html` are dev-server only and are not in the Netlify build, so deploy previews show a blank page. P26 (demo hub) fixes this.
+- No `World` implementation exists yet; the sim systems are not wired together. P29 fixes this.
 
 ## Next three packets
 
-1. P3: Fixed-step game loop, `LocalSession`, `LoopbackTransport` (Opus), depends on P2.
-2. P6: Rapier physics glue (Opus), depends on P2.
+1. P26: Demo hub (Opus, priority).
+2. P29: World v1 (Opus, priority).
+3. P27: Touch controls (Opus, priority), after P26.
