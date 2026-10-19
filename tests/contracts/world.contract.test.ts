@@ -3,6 +3,7 @@
  * participant and state guarantees are implemented by P29 (`src/sim/world.ts`);
  * the snapshot codec is still to come.
  */
+import RAPIER from '@dimforge/rapier3d-compat';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { scriptedInput, worldOptions } from '../../src/sim/world/testing';
 import { createWorld, type SimWorld } from '../../src/sim/world';
@@ -154,13 +155,23 @@ describe('World.step', () => {
     const { world, pawns } = await fourPawnWorld();
     const offenders: string[] = [];
     // Rapier's WASM bindings time their own pipeline stages with performance.now
-    // for profiling counters; nothing in the results depends on them.
-    const fromRapier = (stack: string | undefined) => stack?.includes('rapier_wasm3d') ?? false;
+    // for profiling counters; nothing in the results depends on them. Rapier runs
+    // synchronously, so calls made while its step is on the stack are skipped and
+    // a stack is built only for calls from anywhere else.
+    let inRapier = 0;
+    const realStep = RAPIER.World.prototype.step;
+    vi.spyOn(RAPIER.World.prototype, 'step').mockImplementation(function (this: unknown, ...args) {
+      inRapier++;
+      try {
+        return realStep.apply(this as InstanceType<typeof RAPIER.World>, args as []);
+      } finally {
+        inRapier--;
+      }
+    });
     const guard =
       <T>(name: string, real: () => T) =>
       (): T => {
-        const stack = new Error().stack;
-        if (!fromRapier(stack)) offenders.push(`${name}\n${stack ?? ''}`);
+        if (inRapier === 0) offenders.push(`${name}\n${new Error().stack ?? ''}`);
         return real();
       };
     const realDate = Date.now.bind(Date);
@@ -171,10 +182,7 @@ describe('World.step', () => {
     vi.spyOn(Math, 'random').mockImplementation(guard('Math.random', realRandom));
     for (let tick = 1; tick <= 600; tick++) world.step(scripted(pawns, tick));
     expect(offenders).toEqual([]);
-    // Every guarded call captures a stack trace, and Rapier calls performance.now
-    // thousands of times in 600 ticks, so this test runs close to the default 5 s
-    // limit on a shared CI runner.
-  }, 30_000);
+  });
 
   it('returns events in the order they occurred within the tick', async () => {
     const { world, pawns } = await fourPawnWorld();
