@@ -30,7 +30,11 @@ labels: ["packet", "ready"]
 
 ## Sign-off
 
-<!-- signoff:auto or signoff:human (set as a label too). Human for art and gameplay-feel work. -->
+<!-- signoff:auto or signoff:human (set as a label too). signoff:human only for demo packets that ship a playable, phone-friendly demo on the Netlify deploy preview (docs/DESIGN.md §18.8). Everything else is signoff:auto. -->
+
+## Demo
+
+<!-- signoff:human: demo slug, What-to-check items (3–5). signoff:auto: which hub demo, if any, this packet adds to. -->
 
 ## Notes for the session
 
