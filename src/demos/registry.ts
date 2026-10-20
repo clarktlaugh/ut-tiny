@@ -33,6 +33,23 @@ export interface DemoEntry {
 
 export const DEMOS: readonly DemoEntry[] = [
   {
+    slug: 'laundry-walkabout',
+    title: 'Laundry walkabout',
+    milestone: 'M1',
+    status: 'signoff',
+    packet: 'P31',
+    updated: '2026-10-20',
+    whatToCheck:
+      'The full movement set in the grey-box laundry room: feel, dodge and double jump, every jump pad route, room scale.',
+    checklist: [
+      'Movement feel: run, jump, crouch and air control; the room reads as a giant laundry room.',
+      'Dodge (double-tap a direction, or flick the stick) and double jump (jump again near the top of a jump).',
+      'Each jump pad route from the Go-to panel: clothespins to the machine tops, the sink pad, the washer cap to the towel, the dryer corner cap and wall dodge to the shelf.',
+      'Hazards and respawn: the iron burns, the sump kills, a drop from a machine top is lethal with the §4 numbers.',
+      'Tuning: change the movement numbers in the Tuning panel; Copy feedback includes them.',
+    ],
+  },
+  {
     slug: 'playable',
     title: 'Quick playable (stopgap)',
     milestone: 'M2',
