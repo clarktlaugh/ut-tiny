@@ -12,19 +12,22 @@
  * failed request, a bad HTTP status, `body[data-ready="1"]` never appearing,
  * or a blank frame (the canvas, or the page when there is none, is
  * screenshotted a few seconds after load and must show several distinct
- * colors with real contrast). Screenshots go to `--out`
+ * colors with real contrast). Only requests to the page's own host count:
+ * the Netlify deploy-preview overlay talks to `app.netlify.com`, and its
+ * failed requests, bad statuses and console errors are ignored. Screenshots go to `--out`
  * (default `$TMPDIR/ut-tiny-preview-smoke`).
  *
  * `--self-test` runs the same checks against a local fixture server: a good
  * demo must pass, and demos that throw on load, log an error, never become
- * ready or draw a blank canvas must each fail.
+ * ready or draw a blank canvas must each fail. A third-party host that fails
+ * or answers 404 must not fail a demo; a 404 from the demo's own host must.
  */
 import { createServer, type Server } from 'node:http';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium, devices, type Browser, type BrowserContextOptions } from 'playwright-core';
-import { collectPageErrors, parseArgs } from './browser.ts';
+import { parseArgs } from './browser.ts';
 import { DEMOS } from '../src/demos/registry.ts';
 
 const CHROMIUM_ARGS = [
@@ -106,6 +109,15 @@ async function frameStats(page: import('playwright-core').Page, png: Buffer): Pr
   }, png.toString('base64'));
 }
 
+/** True when `url` is served by `host` (a `URL.host`, so port included). */
+export function isOwnHost(url: string, host: string): boolean {
+  try {
+    return new URL(url).host === host;
+  } catch {
+    return false;
+  }
+}
+
 /** Load one demo URL on one device and return everything that was wrong. */
 export async function checkPage(
   browser: Browser,
@@ -118,12 +130,25 @@ export async function checkPage(
   const context = await browser.newContext(device.options);
   try {
     const page = await context.newPage();
-    const errors = collectPageErrors(page);
+    // Only the deploy-preview host itself counts; the Netlify overlay's
+    // requests (and the console errors they cause) are not part of the demo.
+    const host = new URL(url).host;
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
+    page.on('console', (msg) => {
+      if (msg.type() !== 'error') return;
+      const from = msg.location().url;
+      if (from && !isOwnHost(from, host)) return;
+      errors.push(`console.error: ${msg.text()}`);
+    });
     page.on('requestfailed', (req) => {
+      if (!isOwnHost(req.url(), host)) return;
       failures.push(`request failed: ${req.url()} (${req.failure()?.errorText ?? 'unknown'})`);
     });
     page.on('response', (res) => {
-      if (res.status() >= 400) failures.push(`HTTP ${res.status()}: ${res.url()}`);
+      if (isOwnHost(res.url(), host)) {
+        if (res.status() >= 400) failures.push(`HTTP ${res.status()}: ${res.url()}`);
+      }
     });
 
     const nav = await page.goto(url, { waitUntil: 'load', timeout: 60_000 });
@@ -250,6 +275,18 @@ const FIXTURES: Record<string, { html: string; expectFail: boolean }> = {
       const g=document.getElementById('c').getContext('2d');
       for(let i=0;i<24;i++){g.fillStyle='hsl('+i*15+',70%,50%)';g.fillRect(i*13,0,13,180);}</script>`,
   },
+  // Stands in for the Netlify overlay: a request to another host that 404s,
+  // one that is refused, and a console error raised by a script from there.
+  'third-party': {
+    expectFail: false,
+    html: `<canvas id=c width=320 height=180></canvas><script>
+      const g=document.getElementById('c').getContext('2d');
+      for(let i=0;i<24;i++){g.fillStyle='hsl('+i*15+',70%,'+(20+i*2)+'%)';g.fillRect(i*13,(i%5)*30,13,60);}
+      document.body.dataset.ready='1';</script>
+      <img src="__OTHER__/overlay.png"><img src="http://127.0.0.1:1/refused.png">
+      <script src="__OTHER__/overlay.js"></script>`,
+  },
+  // A 404 from the demo's own host must still fail.
   'missing-asset': {
     expectFail: true,
     html: `<canvas id=c width=320 height=180></canvas><script>
@@ -259,7 +296,30 @@ const FIXTURES: Record<string, { html: string; expectFail: boolean }> = {
   },
 };
 
-function startFixtureServer(sha: string): Promise<{ server: Server; base: string }> {
+/** A second host that 404s everything except a script that logs a console error. */
+function startOtherServer(): Promise<{ server: Server; base: string }> {
+  const server = createServer((req, res) => {
+    if ((req.url ?? '').startsWith('/overlay.js')) {
+      res.setHeader('Content-Type', 'text/javascript');
+      res.end("console.error('fixture third-party console error');");
+      return;
+    }
+    res.statusCode = 404;
+    res.end('not found');
+  });
+  return new Promise((resolveListen) => {
+    server.listen(0, '127.0.0.1', () => {
+      const addr = server.address();
+      const port = typeof addr === 'object' && addr ? addr.port : 0;
+      resolveListen({ server, base: `http://localhost:${port}` });
+    });
+  });
+}
+
+function startFixtureServer(
+  sha: string,
+  otherBase: string,
+): Promise<{ server: Server; base: string }> {
   const server = createServer((req, res) => {
     const path = (req.url ?? '/').split('?')[0]!;
     if (path === '/version.json') {
@@ -275,7 +335,9 @@ function startFixtureServer(sha: string): Promise<{ server: Server; base: string
       return;
     }
     res.setHeader('Content-Type', 'text/html');
-    res.end(`<!doctype html><meta charset=utf-8><body>${fixture.html}</body>`);
+    res.end(
+      `<!doctype html><meta charset=utf-8><body>${fixture.html.replaceAll('__OTHER__', otherBase)}</body>`,
+    );
   });
   return new Promise((resolveListen) => {
     server.listen(0, '127.0.0.1', () => {
@@ -288,7 +350,8 @@ function startFixtureServer(sha: string): Promise<{ server: Server; base: string
 
 async function selfTest(browser: Browser, outDir: string): Promise<boolean> {
   const sha = 'f'.repeat(40);
-  const { server, base } = await startFixtureServer(sha);
+  const other = await startOtherServer();
+  const { server, base } = await startFixtureServer(sha, other.base);
   let ok = true;
   try {
     await waitForDeploy(base, sha, 1);
@@ -313,6 +376,7 @@ async function selfTest(browser: Browser, outDir: string): Promise<boolean> {
     }
   } finally {
     server.close();
+    other.server.close();
   }
   return ok;
 }
