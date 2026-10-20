@@ -8,8 +8,11 @@
  *
  * Query parameters (besides the shell's `card=0`, `quality=`, `perf=1` and
  * the client's `touch=1|0`): `at=<place>` starts at a Go-to place, by id
- * (`camera:shelf`, `route:R4`) or short name (`shelf`, `R4`). When the first
- * frame has rendered, `document.body.dataset.ready` is `"1"`.
+ * (`camera:shelf`, `route:R4`) or short name (`shelf`, `R4`). On desktop
+ * `G` opens Go to and `T` opens Tuning even while the mouse is locked (both
+ * keys are unbound in the default bindings; opening a sheet frees the
+ * mouse). When the first frame has rendered, `document.body.dataset.ready`
+ * is `"1"`.
  */
 import { WebGLRenderer } from 'three';
 import { CLIENT_RULES, createClient, type Client } from '../../client';
@@ -76,7 +79,7 @@ async function start(): Promise<WalkaboutDemo> {
   const hint = el(
     'div',
     'lw-hint',
-    'Click to play. WASD move · Space jump (again near the top: double jump) · double-tap a direction to dodge · Ctrl crouch · Esc frees the mouse',
+    'Click to play. WASD move · Space jump (again near the top: double jump) · double-tap a direction to dodge · Ctrl crouch · G: Go to · T: Tuning · Esc frees the mouse',
   );
   const client = await createClient({
     canvas,
@@ -116,6 +119,14 @@ async function start(): Promise<WalkaboutDemo> {
     teleportSheet.sheet.open(),
   );
   bar.button('Tuning', 'Movement tuning (§4)', () => tuningSheet.sheet.open());
+  // Keyboard shortcuts for the panels; the sheets swallow their own keys, so these only fire
+  // from the game. Both codes are unbound in the default bindings.
+  document.addEventListener('keydown', (e) => {
+    if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (teleportSheet.sheet.isOpen || tuningSheet.sheet.isOpen) return;
+    if (e.code === 'KeyG') teleportSheet.sheet.open();
+    else if (e.code === 'KeyT') tuningSheet.sheet.open();
+  });
 
   client.use(
     readoutPlugin({
